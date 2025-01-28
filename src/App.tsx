@@ -17,8 +17,8 @@ const NAVIGATION: Navigation = [
     icon: <DashboardIcon />,
   },
   {
-    segment: "orders",
-    title: "Orders",
+    segment: "weld",
+    title: "Weld",
     icon: <TableChart />,
   },
 ];

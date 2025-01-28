@@ -5,7 +5,7 @@ import Example from "../components/Example";
 export default function HomePage() {
   return (
     <>
-      <Typography>Welcome to Toolpad Core!</Typography>
+      <Typography>Production Dashboard will show here</Typography>
       <Example />
     </>
   );
