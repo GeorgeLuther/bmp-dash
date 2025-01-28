@@ -20,7 +20,7 @@ const router = createBrowserRouter([
             Component: DashboardPage,
           },
           {
-            path: "orders",
+            path: "weld",
             Component: WeldPage,
           },
         ],
