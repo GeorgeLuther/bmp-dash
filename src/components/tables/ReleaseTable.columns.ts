@@ -1,5 +1,5 @@
 import { MRT_ColumnDef } from "material-react-table";
-import { Release } from "./types/Releases";
+import { Release } from "./types/Release";
 
 export const releaseColumns: MRT_ColumnDef<Release>[] = [
   {

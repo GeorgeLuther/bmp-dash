@@ -94,6 +94,7 @@
 
   # Vite build output
   dist-ssr
+  dist.zip
   
   # Gatsby files
   .cache/
