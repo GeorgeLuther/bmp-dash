@@ -4,7 +4,7 @@ import TableChart from "@mui/icons-material/TableChart";
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
-import { firebaseSignOut, onAuthStateChanged } from "./firebase/auth";
+import { supabase } from "./supabase/client";
 import SessionContext, { type Session } from "./SessionContext";
 
 const NAVIGATION: Navigation = [
@@ -29,7 +29,9 @@ const BRANDING = {
 
 const AUTHENTICATION: Authentication = {
   signIn: () => {},
-  signOut: firebaseSignOut,
+  signOut: async () => {
+    await supabase.auth.signOut();
+  },
 };
 
 export default function App() {
@@ -46,13 +48,31 @@ export default function App() {
   );
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged((user) => {
-      if (user) {
+    // 1) fetch initial session
+    supabase.auth.getSession().then(({ data }) => {
+      const s = data.session;
+      if (s) {
         setSession({
           user: {
-            name: user.name || "",
-            email: user.email || "",
-            image: user.image || "",
+            name: (s.user.user_metadata as any).name || "",
+            email: s.user.email || "",
+            image: (s.user.user_metadata as any).avatar_url || "",
+          },
+        });
+      }
+      setLoading(false);
+    });
+
+    // 2) subscribe to changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (s) {
+        setSession({
+          user: {
+            name: (s.user.user_metadata as any).name || "",
+            email: s.user.email || "",
+            image: (s.user.user_metadata as any).avatar_url || "",
           },
         });
       } else {
@@ -61,7 +81,7 @@ export default function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   return (

@@ -1,12 +1,11 @@
-'use client';
-import * as React from 'react';
-import Alert from '@mui/material/Alert';
-import LinearProgress from '@mui/material/LinearProgress';
-import { SignInPage } from '@toolpad/core/SignInPage';
-import { Navigate, useNavigate } from 'react-router';
-import { useSession, type Session } from '../SessionContext';
-import { signInWithGoogle } from '../firebase/auth';
-
+"use client";
+import * as React from "react";
+import Alert from "@mui/material/Alert";
+import LinearProgress from "@mui/material/LinearProgress";
+import { SignInPage } from "@toolpad/core/SignInPage";
+import { Navigate, useNavigate } from "react-router";
+import { useSession, type Session } from "../SessionContext";
+import { supabase } from "../supabase/client";
 
 export default function SignIn() {
   const { session, setSession, loading } = useSession();
@@ -15,41 +14,37 @@ export default function SignIn() {
   if (loading) {
     return <LinearProgress />;
   }
-
   if (session) {
-    return <Navigate to="/" />;
+    return <Navigate to="/" replace />;
   }
 
   return (
     <SignInPage
-      providers={[{ id: 'google', name: 'Google' }]}
-      signIn={async (provider, formData, callbackUrl) => {
-        let result;
+      providers={[
+        { id: "google", name: "Google" },
+        { id: "azure", name: "Microsoft" },
+      ]}
+      signIn={async (provider, _formData, callbackUrl) => {
         try {
-          if (provider.id === 'google') {
-            result = await signInWithGoogle();
-          }
-          
-          
+          const redirectTo = window.location.origin + (callbackUrl || "/");
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: provider.id as "google" | "azure",
+            options: { redirectTo },
+          });
 
-          if (result?.success && result?.user) {
-            const userSession: Session = {
-              user: {
-                name: result.user.displayName || '',
-                email: result.user.email || '',
-                image: result.user.photoURL || '',
-              },
-            };
-            setSession(userSession);
-            navigate(callbackUrl || '/', { replace: true });
-            return {};
+          console.log("⚙️ signInWithOAuth returned:", { data, error });
+
+          if (error) return { error: error.message };
+          if (data?.url) {
+            console.log("➡️ Navigating to:", data.url);
+            window.location.assign(data.url);
           }
-          return { error: result?.error || 'Failed to sign in' };
-        } catch (error) {
-          return { error: error instanceof Error ? error.message : 'An error occurred' };
+          return {};
+        } catch (e: any) {
+          console.error(e);
+          return { error: e.message };
         }
       }}
-        
     />
   );
 }
