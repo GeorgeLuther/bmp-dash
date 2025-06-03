@@ -5,7 +5,9 @@ import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
 import { supabase } from "./supabase/client";
-import SessionContext, { type Session } from "./SessionContext";
+(window as any).supabase = supabase;
+import SessionContext, { type Session } from "./contexts/SessionContext";
+import { PersonnelProvider } from "./contexts/PersonnelContext";
 
 const NAVIGATION: Navigation = [
   {
@@ -19,6 +21,11 @@ const NAVIGATION: Navigation = [
   {
     segment: "weld",
     title: "Weld",
+    icon: <TableChart />,
+  },
+  {
+    segment: "userprofile",
+    title: "User Profile",
     icon: <TableChart />,
   },
 ];
@@ -92,7 +99,9 @@ export default function App() {
       authentication={AUTHENTICATION}
     >
       <SessionContext.Provider value={sessionContextValue}>
-        <Outlet />
+        <PersonnelProvider>
+          <Outlet />
+        </PersonnelProvider>
       </SessionContext.Provider>
     </ReactRouterAppProvider>
   );

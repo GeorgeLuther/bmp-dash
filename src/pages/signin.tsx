@@ -4,7 +4,7 @@ import Alert from "@mui/material/Alert";
 import LinearProgress from "@mui/material/LinearProgress";
 import { SignInPage } from "@toolpad/core/SignInPage";
 import { Navigate, useNavigate } from "react-router";
-import { useSession, type Session } from "../SessionContext";
+import { useSession, type Session } from "../contexts/SessionContext";
 import { supabase } from "../supabase/client";
 
 export default function SignIn() {
