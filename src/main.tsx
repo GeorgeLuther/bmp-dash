@@ -6,7 +6,7 @@ import Layout from "./layouts/dashboard";
 import DashboardPage from "./pages";
 import WeldPage from "./pages/weld";
 import SignInPage from "./pages/signin";
-import UserProfilePage from "./pages/userprofile";
+import AccountPage from "./pages/account";
 
 const router = createBrowserRouter([
   {
@@ -25,8 +25,8 @@ const router = createBrowserRouter([
             Component: WeldPage,
           },
           {
-            path: "userprofile",
-            Component: UserProfilePage,
+            path: "account",
+            Component: AccountPage,
           },
         ],
       },

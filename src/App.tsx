@@ -8,6 +8,7 @@ import { supabase } from "./supabase/client";
 (window as any).supabase = supabase;
 import SessionContext, { type Session } from "./contexts/SessionContext";
 import { PersonnelProvider } from "./contexts/PersonnelContext";
+import { AccountBox } from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
   {
@@ -24,9 +25,9 @@ const NAVIGATION: Navigation = [
     icon: <TableChart />,
   },
   {
-    segment: "userprofile",
-    title: "User Profile",
-    icon: <TableChart />,
+    segment: "account",
+    title: "Account",
+    icon: <AccountBox />,
   },
 ];
 

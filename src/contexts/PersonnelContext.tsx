@@ -1,4 +1,4 @@
-// Provides current signed-in user's personnel record via React Context
+// PersonnelContext.tsx
 
 import React, {
   createContext,
@@ -7,10 +7,11 @@ import React, {
   useState,
   ReactNode,
 } from "react";
-import { supabase } from "../supabase/client"; // your Supabase client instance
-import { useSession } from "./SessionContext"; // assumes you have a session context that tracks auth
+import { supabase } from "../supabase/client";
+import { useSession } from "./SessionContext";
 
-// Interface for the personnel record (from your DB view/table)
+// --- Types ------------------------------------------------
+
 export interface Personnel {
   id: string;
   nfc_id: string;
@@ -18,63 +19,91 @@ export interface Personnel {
   last_name: string;
   preferred_name?: string;
   agency?: string;
-
-  // Add more fields later as needed
 }
 
-// Defines what the context provides to consumers
+export interface UserRole {
+  role_id: string;
+  role_label: string;
+  involvement_id: string;
+  involvement_label: string;
+  assigned_since: string;
+}
+
 interface PersonnelContextType {
-  personnel: Personnel | null; // actual data
-  loading: boolean; // lets UI know if we're still fetching
+  personnel: Personnel | null;
+  roles: UserRole[]; // NEW
+  loading: boolean;
 }
 
-// Create the actual React context
+// --- Context setup ---------------------------------------
+
 const PersonnelContext = createContext<PersonnelContextType>({
   personnel: null,
+  roles: [], // NEW
   loading: true,
 });
 
-// Hook to consume the context (what you use in components)
 export const usePersonnel = () => useContext(PersonnelContext);
 
-// Provider component to wrap your app
+// --- Provider --------------------------------------------
+
 export const PersonnelProvider = ({ children }: { children: ReactNode }) => {
-  const { session } = useSession(); // get the Supabase session
+  const { session } = useSession();
   const [personnel, setPersonnel] = useState<Personnel | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]); // NEW
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // If there's no session (user not logged in), clear data
     if (!session) {
       setPersonnel(null);
+      setRoles([]); // CLEAR roles on logout
       setLoading(false);
       return;
     }
 
-    // Otherwise, fetch personnel info for the current user
-    const fetchPersonnel = async () => {
+    const fetchData = async () => {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("v_current_user_personnel") // this view filters by auth.uid()
+      // 1) Load personnel record
+      const { data: pData, error: pErr } = await supabase
+        .from("v_current_user_personnel")
         .select("*")
-        .single(); // we expect exactly one row
+        .single();
 
-      if (error) {
-        console.error("Error loading personnel:", error);
+      if (pErr) {
+        console.error("Error loading personnel:", pErr);
         setPersonnel(null);
       } else {
-        setPersonnel(data);
+        setPersonnel(pData);
+      }
+
+      // 2) Load current user roles
+      const { data: rData, error: rErr } = await supabase.from(
+        "v_current_user_active_roles"
+      ).select(`
+          role_id,
+          role_label,
+          involvement_id,
+          involvement_label,
+          assigned_since
+        `);
+
+      if (rErr) {
+        console.error("Error loading roles:", rErr);
+        setRoles([]);
+      } else {
+        setRoles(rData || []);
+        console.log("Loaded roles:", rData);
       }
 
       setLoading(false);
     };
 
-    fetchPersonnel();
-  }, [session]); // re-run when session changes
+    fetchData();
+  }, [session]);
 
   return (
-    <PersonnelContext.Provider value={{ personnel, loading }}>
+    <PersonnelContext.Provider value={{ personnel, roles, loading }}>
       {children}
     </PersonnelContext.Provider>
   );
