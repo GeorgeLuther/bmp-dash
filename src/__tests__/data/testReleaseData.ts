@@ -1,4 +1,4 @@
-import { Release } from "../../components/tables/types/Release";
+import { Release } from "../../types/Release";
 
 export const releaseData: Release[] = [
   {

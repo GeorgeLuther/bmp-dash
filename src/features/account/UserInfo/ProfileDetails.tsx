@@ -10,6 +10,7 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
+import ReadOrEditField from "@/components/reusables/ReadOrEditFeild";
 import { usePersonnel } from "@/contexts/PersonnelContext";
 import { supabase } from "@/supabase/client";
 
@@ -17,56 +18,12 @@ type Props = {
   editable: boolean;
 };
 
-// Re-usable field component
-const ReadOrEditField = ({
-  label,
-  name,
-  value,
-  editable,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  editable: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <TextField
-    label={label}
-    name={name}
-    value={value}
-    onChange={onChange}
-    fullWidth
-    variant="outlined"
-    InputProps={{ readOnly: !editable }}
-    sx={
-      !editable
-        ? {
-            // Light gray outline for read-only fields
-            "& .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#efefef",
-            },
-            // Prevents the border color from changing on hover
-            "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-              borderColor: "#efefef",
-            },
-            //No focus state
-            "& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-              {
-                borderColor: "#efefef",
-              },
-            // Prevents the cursor from changing to the text I-beam
-            "& .MuiInputBase-input": {
-              cursor: "default",
-            },
-          }
-        : {}
-    }
-  />
-);
-
 export default function ProfileDetails({ editable }: Props) {
-  const { personnel, roles: userRoles } = usePersonnel();
+  const {
+    personnel,
+    roles: userRoles,
+    departments: userDepartments,
+  } = usePersonnel();
 
   const [form, setForm] = useState({
     first_name: "",
@@ -74,7 +31,6 @@ export default function ProfileDetails({ editable }: Props) {
     last_name: "",
   });
   const [emails, setEmails] = useState<string[]>([]);
-  const departments = ["Fabrication"]; // placeholder
   const skills = ["TIG Welding", "Brake Setup", "Quality Audit"]; // placeholder
 
   useEffect(() => {
@@ -179,8 +135,8 @@ export default function ProfileDetails({ editable }: Props) {
         <Box>
           <Typography variant="subtitle1">Departments</Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" my={1}>
-            {departments.map((dept) => (
-              <Chip key={dept} label={dept} />
+            {userDepartments.map((d) => (
+              <Chip key={d.department_id} label={d.department_label} />
             ))}
           </Stack>
         </Box>

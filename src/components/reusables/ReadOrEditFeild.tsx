@@ -1,53 +1,69 @@
 import React from "react";
-import { TextField, Theme, TextFieldProps } from "@mui/material";
+import { TextField, TextFieldProps } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
-/**
- * We can omit props that we are controlling directly to avoid conflicts
- * and allow the user to pass through any other valid TextFieldProps.
- */
-type ReadOrEditFieldProps = {
+type ReadOrEditFieldProps = Omit<
+  TextFieldProps,
+  "onChange" | "value" | "name" | "sx"
+> & {
+  label: string;
+  name: string;
+  value: string;
   editable: boolean;
-} & Omit<TextFieldProps, "variant" | "InputProps" | "sx">;
-
-/**
- * A theme-aware TextField that switches between an editable state and a
- * read-only state that looks like static text but maintains the field's
- * structure and label.
- *
- * @param {ReadOrEditFieldProps} props - The component props.
- * @param {boolean} props.editable - Toggles the editable state of the field.
- */
-const ReadOrEditField = ({ editable, ...props }: ReadOrEditFieldProps) => {
-  return (
-    <TextField
-      variant="outlined"
-      InputProps={{
-        readOnly: !editable,
-      }}
-      sx={(theme: Theme) => {
-        if (editable) {
-          // Return default styles when editable
-          return {};
-        }
-
-        // In read-only mode, define a subtle border and static styles.
-        const readOnlyBorderColor = theme.palette.divider;
-
-        return {
-          // Group all states to ensure the border color never changes.
-          "& .MuiOutlinedInput-notchedOutline, & .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline, & .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline":
-            {
-              borderColor: readOnlyBorderColor,
-            },
-          // Ensure the cursor doesn't change to a text input I-beam.
-          "& .MuiInputBase-input": {
-            cursor: "default",
-          },
-        };
-      }}
-      {...props} // Spread the rest of the props (label, value, onChange, etc.)
-    />
-  );
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  sx?: TextFieldProps["sx"];
 };
 
-export default ReadOrEditField;
+export default function ReadOrEditField({
+  label,
+  name,
+  value,
+  editable,
+  onChange,
+  sx: propSx,
+  ...props
+}: ReadOrEditFieldProps) {
+  return (
+    <TextField
+      label={label}
+      name={name}
+      value={value}
+      onChange={onChange}
+      fullWidth
+      variant="outlined"
+      {...props}
+      InputProps={{ readOnly: !editable }}
+      sx={[
+        (theme) => {
+          if (!editable) {
+            // subtle outline for read-only view
+            const staticBorderColor = alpha(theme.palette.text.primary, 0.12);
+
+            return {
+              // field is unresponsive to interaction, like normal text
+              "& .MuiOutlinedInput-input": { cursor: "default" },
+              "& .MuiInputLabel-root.Mui-focused": { color: "text.secondary" },
+              "& .MuiOutlinedInput-root": {
+                "& .MuiOutlinedInput-notchedOutline": {
+                  borderColor: staticBorderColor,
+                },
+                "&:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: `${staticBorderColor} !important`,
+                },
+                "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: `${staticBorderColor} !important`,
+                  borderWidth: "1px !important",
+                },
+                "&.Mui-focused": {
+                  boxShadow: "none !important",
+                },
+              },
+            };
+          }
+          return {};
+        },
+        ...(Array.isArray(propSx) ? propSx : [propSx]),
+      ]}
+    />
+  );
+}

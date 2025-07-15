@@ -1,7 +1,7 @@
 import { MRT_ColumnDef } from "material-react-table";
-import { Release } from "./types/Release";
+import { Release } from "../../../types/Release";
 
-export const releaseColumns: MRT_ColumnDef<Release>[] = [
+export const miniReleaseColumns: MRT_ColumnDef<Release>[] = [
   {
     accessorKey: "jobName",
     header: "Job Name",

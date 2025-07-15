@@ -1,5 +1,5 @@
 import * as React from "react";
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
 import TableChart from "@mui/icons-material/TableChart";
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
@@ -16,13 +16,15 @@ const NAVIGATION: Navigation = [
     title: "Main items",
   },
   {
-    title: "Dashboard",
-    icon: <DashboardIcon />,
-  },
-  {
-    segment: "weld",
-    title: "Weld",
-    icon: <TableChart />,
+    title: "Scheduling",
+    icon: <CalendarMonth />,
+    children: [
+      {
+        segment: "all_releases",
+        title: "All Releases",
+        icon: <TableChart />,
+      },
+    ],
   },
   {
     segment: "account",

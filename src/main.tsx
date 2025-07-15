@@ -3,8 +3,8 @@ import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import App from "./App";
 import Layout from "./layouts/dashboard";
-import DashboardPage from "./pages";
-import WeldPage from "./pages/weld";
+import AllReleasesPage from "./features/scheduling/pages";
+//import WeldPage from "./pages/weld";
 import SignInPage from "./pages/signin";
 import AccountPage from "./pages/account";
 
@@ -17,12 +17,12 @@ const router = createBrowserRouter([
         Component: Layout,
         children: [
           {
-            path: "",
-            Component: DashboardPage,
+            index: true,
+            Component: AllReleasesPage,
           },
           {
-            path: "weld",
-            Component: WeldPage,
+            path: "all_releases",
+            Component: AllReleasesPage,
           },
           {
             path: "account",

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Tabs, Tab, Box, Typography, IconButton, Stack } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import CloseIcon from "@mui/icons-material/Close";
-import ProfileTab from "@/components/UserInfo/ProfileTab"; // Adjust the import path as needed
+import ProfileTab from "@/features/account/UserInfo/ProfileTab"; // Adjust the import path as needed
 const TABS = ["Profile", "Training", "Operations", "Employment", "Settings"];
 
 export default function AccountPage() {

@@ -8,7 +8,7 @@ import {
   useTheme,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import { Release } from "./types/Release";
+import { Release } from "../../../types/Release";
 
 interface RightDrawerProps {
   open: boolean;
@@ -45,7 +45,7 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
         }}
       >
         <Typography variant="h4" component="div" sx={{ flexGrow: 1 }}>
-          {rowData.releaseCode || "Job Number"}
+          {rowData.release_code || "Job Number"}
         </Typography>
         <IconButton onClick={onClose}>
           <CloseIcon />
@@ -53,7 +53,7 @@ const RightDrawer: React.FC<RightDrawerProps> = ({
       </Box>
       <Box sx={{ padding: theme.spacing(2) }}>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          {rowData.jobName || "Job Name"}
+          {rowData.ms_job_name || "Job Name"}
         </Typography>
         <Typography variant="subtitle1" gutterBottom>
           Release Information:

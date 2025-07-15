@@ -29,9 +29,15 @@ export interface UserRole {
   assigned_since: string;
 }
 
+export interface UserDepartment {
+  department_id: string;
+  department_label: string;
+}
+
 interface PersonnelContextType {
   personnel: Personnel | null;
-  roles: UserRole[]; // NEW
+  roles: UserRole[];
+  departments: UserDepartment[];
   loading: boolean;
 }
 
@@ -39,7 +45,8 @@ interface PersonnelContextType {
 
 const PersonnelContext = createContext<PersonnelContextType>({
   personnel: null,
-  roles: [], // NEW
+  roles: [],
+  departments: [],
   loading: true,
 });
 
@@ -50,13 +57,15 @@ export const usePersonnel = () => useContext(PersonnelContext);
 export const PersonnelProvider = ({ children }: { children: ReactNode }) => {
   const { session } = useSession();
   const [personnel, setPersonnel] = useState<Personnel | null>(null);
-  const [roles, setRoles] = useState<UserRole[]>([]); // NEW
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [departments, setDepartments] = useState<UserDepartment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!session) {
       setPersonnel(null);
-      setRoles([]); // CLEAR roles on logout
+      setRoles([]);
+      setDepartments([]);
       setLoading(false);
       return;
     }
@@ -96,6 +105,19 @@ export const PersonnelProvider = ({ children }: { children: ReactNode }) => {
         console.log("Loaded roles:", rData);
       }
 
+      // 3) Load current user departments
+      const { data: dData, error: dErr } = await supabase
+        .from("v_current_user_departments")
+        .select("department_id, department_label");
+
+      if (dErr) {
+        console.error("Error loading departments:", dErr);
+        setDepartments([]);
+      } else {
+        setDepartments(dData || []);
+        console.log("Loaded departments:", dData);
+      }
+
       setLoading(false);
     };
 
@@ -103,7 +125,9 @@ export const PersonnelProvider = ({ children }: { children: ReactNode }) => {
   }, [session]);
 
   return (
-    <PersonnelContext.Provider value={{ personnel, roles, loading }}>
+    <PersonnelContext.Provider
+      value={{ personnel, roles, departments, loading }}
+    >
       {children}
     </PersonnelContext.Provider>
   );

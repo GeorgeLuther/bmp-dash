@@ -4,14 +4,17 @@ import {
   MRT_ActionMenuItem,
   type MRT_Row,
 } from "material-react-table";
-import { releaseData } from "../../__tests__/data/testReleaseData";
-import { releaseColumns } from "./ReleaseTable.columns";
+
 import { Edit, Delete } from "@mui/icons-material";
 import RightDrawer from "./ReleaseDrawer";
-import { Release } from "./types/Release";
+import { Release } from "../../../types/Release";
+
+import { releaseColumns } from "./ReleaseTable.columns";
+import { useReleases } from "@/hooks/getAllReleases";
 
 // Assuming Release is defined in testReleaseData
 const ReleasesTable = () => {
+  const { data: releaseData, isLoading, error } = useReleases();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedRowData, setSelectedRowData] = useState<Release | null>(null);
 
@@ -30,6 +33,21 @@ const ReleasesTable = () => {
       <MaterialReactTable
         columns={releaseColumns}
         data={releaseData}
+        muiTablePaperProps={{
+          sx: {
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            width: "100%",
+          },
+        }}
+        // and the table body to scroll inside it:
+        muiTableContainerProps={{
+          sx: {
+            flex: 1,
+            minHeight: 0, // allow inner scrolling
+          },
+        }}
         enableRowActions
         renderRowActionMenuItems={({ row, table, closeMenu }) => [
           <MRT_ActionMenuItem //or just use a normal MUI MenuItem component
