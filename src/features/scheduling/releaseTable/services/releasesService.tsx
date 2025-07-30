@@ -1,6 +1,6 @@
 // src/services/releasesService.ts
-import { supabase } from "../supabase/client"; // ← adjust path as needed
-import type { Release } from "../types/Release";
+import { supabase } from "@/supabase/client"; // ← adjust path as needed
+import type { Release } from "../types/Release.types";
 
 export async function fetchAllReleases(): Promise<Release[]> {
   const { data, error } = await supabase.from("releases").select("*"); // grabs all columns

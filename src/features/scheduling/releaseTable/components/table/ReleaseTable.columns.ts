@@ -1,5 +1,5 @@
 import { MRT_ColumnDef } from "material-react-table";
-import { Release } from "../../../types/Release";
+import { Release } from "../../types/Release.types";
 
 export const releaseColumns: MRT_ColumnDef<Release>[] = [
   { accessorKey: "ms_row_index",               header: "Row Index" },
@@ -21,7 +21,7 @@ export const releaseColumns: MRT_ColumnDef<Release>[] = [
   { accessorKey: "purchasing_status",          header: "Purchasing Status" },
 
   { accessorKey: "date_to_production_manager", header: "Traveler To Production" },
-  { accessorKey: "week_projected",             header: "Week Projected" },
+  { accessorKey: "week_projected",             header: "Week Projected", enableGrouping: true, },
 
   { accessorKey: "ms_order_quantity",          header: "Order Qty (Master Schedule)" },
   { accessorKey: "ms_po_quantity",             header: "PO Qty (Master Schedule)" },

@@ -1,6 +1,6 @@
 import * as React from "react";
 import Typography from "@mui/material/Typography";
-import ReleasesTable from "../components/ReleaseTable";
+import ReleasesTable from "../releaseTable/ReleasesTable";
 import Box from "@mui/material/Box";
 //import Example from "../components/Example";
 
@@ -20,7 +20,7 @@ export default function AllReleasesPage() {
           overflow: "auto", // scroll if content is taller
         }}
       >
-        <ReleasesTable />
+        <ReleasesTable defaultView="Small Box" />
       </Box>
     </Box>
   );
