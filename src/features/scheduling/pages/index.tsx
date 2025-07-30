@@ -20,7 +20,7 @@ export default function AllReleasesPage() {
           overflow: "auto", // scroll if content is taller
         }}
       >
-        <ReleasesTable defaultView="Small Box" />
+        <ReleasesTable defaultView="Small Cell" />
       </Box>
     </Box>
   );

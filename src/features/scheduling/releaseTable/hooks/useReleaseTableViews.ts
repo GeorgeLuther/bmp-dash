@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { ReleaseTableView } from "../types/releaseTableView.types";
-import { saveReleaseTableView } from "../services/releaseViewService";
-import { supabase } from "@/supabase/client";
+import {
+  getAllReleaseTableViews,
+  saveReleaseTableView,
+} from "../services/releaseViewService";
 
 export function useReleaseTableViews(userId: string | null) {
   const [views, setViews] = useState<ReleaseTableView[]>([]);
@@ -9,17 +11,11 @@ export function useReleaseTableViews(userId: string | null) {
 
   useEffect(() => {
     if (!userId) return;
+
     setLoading(true);
-    supabase
-      .from("release_table_views")
-      .select("*")
-      .or(`is_shared.eq.true,user_id.eq.${userId}`)
-      .order("name")
-      .then(({ data, error }) => {
-        if (error) console.error("Failed to fetch views:", error);
-        if (data) setViews(data);
-        setLoading(false);
-      });
+    getAllReleaseTableViews(userId)
+      .then((data) => setViews(data ?? []))
+      .finally(() => setLoading(false));
   }, [userId]);
 
   const saveView = async (view: Partial<ReleaseTableView>) => {
