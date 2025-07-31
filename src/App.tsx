@@ -1,11 +1,14 @@
 import * as React from "react";
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import CalendarMonth from "@mui/icons-material/CalendarMonth";
 import TableChart from "@mui/icons-material/TableChart";
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
-import { firebaseSignOut, onAuthStateChanged } from "./firebase/auth";
-import SessionContext, { type Session } from "./SessionContext";
+import { supabase } from "./supabase/client";
+(window as any).supabase = supabase;
+import SessionContext, { type Session } from "./contexts/SessionContext";
+import { PersonnelProvider } from "./contexts/PersonnelContext";
+import { AccountBox } from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
   {
@@ -13,13 +16,20 @@ const NAVIGATION: Navigation = [
     title: "Main items",
   },
   {
-    title: "Dashboard",
-    icon: <DashboardIcon />,
+    title: "Scheduling",
+    icon: <CalendarMonth />,
+    children: [
+      {
+        segment: "all_releases",
+        title: "All Releases",
+        icon: <TableChart />,
+      },
+    ],
   },
   {
-    segment: "weld",
-    title: "Weld",
-    icon: <TableChart />,
+    segment: "account",
+    title: "Account",
+    icon: <AccountBox />,
   },
 ];
 
@@ -29,7 +39,9 @@ const BRANDING = {
 
 const AUTHENTICATION: Authentication = {
   signIn: () => {},
-  signOut: firebaseSignOut,
+  signOut: async () => {
+    await supabase.auth.signOut();
+  },
 };
 
 export default function App() {
@@ -46,13 +58,31 @@ export default function App() {
   );
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged((user) => {
-      if (user) {
+    // 1) fetch initial session
+    supabase.auth.getSession().then(({ data }) => {
+      const s = data.session;
+      if (s) {
         setSession({
           user: {
-            name: user.name || "",
-            email: user.email || "",
-            image: user.image || "",
+            name: (s.user.user_metadata as any).name || "",
+            email: s.user.email || "",
+            image: (s.user.user_metadata as any).avatar_url || "",
+          },
+        });
+      }
+      setLoading(false);
+    });
+
+    // 2) subscribe to changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (s) {
+        setSession({
+          user: {
+            name: (s.user.user_metadata as any).name || "",
+            email: s.user.email || "",
+            image: (s.user.user_metadata as any).avatar_url || "",
           },
         });
       } else {
@@ -61,7 +91,7 @@ export default function App() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -72,7 +102,9 @@ export default function App() {
       authentication={AUTHENTICATION}
     >
       <SessionContext.Provider value={sessionContextValue}>
-        <Outlet />
+        <PersonnelProvider>
+          <Outlet />
+        </PersonnelProvider>
       </SessionContext.Provider>
     </ReactRouterAppProvider>
   );
