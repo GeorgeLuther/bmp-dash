@@ -3,6 +3,8 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_TableState,
+  type MRT_Row,
+  MRT_TableBodyRowGrabHandle,
 } from "material-react-table";
 
 import { Box, IconButton, Menu, MenuItem, Tooltip } from "@mui/material";
@@ -25,28 +27,36 @@ interface ReleasesTableProps {
 }
 
 const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
+  //retrieve data
   const { data: releaseData = [], isLoading: isReleasesLoading } =
     useReleases();
+  const [localData, setLocalData] = useState<Release[]>([]);
+  useEffect(() => {
+    setLocalData(releaseData);
+  }, [releaseData]);
+
+  const columns = useMemo(() => releaseColumns, []);
+
   const { personnel } = usePersonnel();
   const personnelId = personnel?.id ?? null;
 
+  //Drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<Release | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
+  //Saved Views
   const {
     views: savedViews = [],
     loading: isViewsLoading,
     saveView,
   } = useReleaseTableViews(personnelId);
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<Release | null>(null);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-
   const viewApplied = useRef(false);
   const [tableState, setTableState] = useState<
     Partial<MRT_TableState<Release>>
   >({});
-
-  const columns = useMemo(() => releaseColumns, []);
 
   // Load default view once on mount
   useEffect(() => {
@@ -64,15 +74,32 @@ const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
 
   const table = useMaterialReactTable<Release>({
     columns,
-    data: releaseData,
+    data: localData,
     enableRowActions: true,
     enableGrouping: true,
     enableColumnOrdering: true,
     positionActionsColumn: "first",
+
     state: {
       ...tableState,
       isLoading: isReleasesLoading || isViewsLoading,
     },
+    autoResetPageIndex: false,
+    enableRowOrdering: true,
+    enableSorting: true,
+    muiRowDragHandleProps: ({ table }) => ({
+      onDragEnd: () => {
+        const { draggingRow, hoveredRow } = table.getState();
+        if (hoveredRow && draggingRow) {
+          localData.splice(
+            (hoveredRow as MRT_Row<Release>).index,
+            0,
+            localData.splice(draggingRow.index, 1)[0]
+          );
+          setLocalData([...localData]);
+        }
+      },
+    }),
     renderRowActions: ({ row }) => (
       <IconButton
         onClick={() => {
