@@ -10,7 +10,7 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import SaveIcon from "@mui/icons-material/Save";
 import { Edit, Delete } from "@mui/icons-material";
 
-import ReleaseDrawer from "../ReleaseDrawer";
+import ReleaseDrawer from "../ReleaseDetailDrawer";
 import { Release } from "../../types/Release.types";
 import { releaseColumns } from "./ReleaseTable.columns";
 import { useReleases } from "@/features/scheduling/releaseTable/hooks/getAllReleases";

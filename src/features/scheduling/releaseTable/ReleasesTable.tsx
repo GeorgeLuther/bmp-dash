@@ -17,7 +17,7 @@ import {
 import { Release } from "./types/Release.types";
 import { releaseColumns } from "./components/table/ReleaseTable.columns";
 import { useReleases } from "@/features/scheduling/releaseTable/hooks/getAllReleases";
-import ReleaseDrawer from "./components/ReleaseDrawer";
+import ReleaseDetailDrawer from "./components/ReleaseDetailDrawer";
 import ReleaseSaveViewDialog from "./components/ReleaseSaveViewDialog";
 import { useReleaseTableViews } from "./hooks/useReleaseTableViews";
 import { usePersonnel } from "@/contexts/PersonnelContext";
@@ -31,9 +31,6 @@ const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
   const { data: releaseData = [], isLoading: isReleasesLoading } =
     useReleases();
   const [localData, setLocalData] = useState<Release[]>([]);
-  useEffect(() => {
-    setLocalData(releaseData);
-  }, [releaseData]);
 
   const columns = useMemo(() => releaseColumns, []);
 
@@ -60,6 +57,8 @@ const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
 
   // Load default view once on mount
   useEffect(() => {
+    setLocalData(releaseData);
+
     console.log("defaultView:", defaultView);
     console.log("savedViews:", savedViews);
     if (!defaultView || !savedViews.length || viewApplied.current) return;
@@ -70,7 +69,7 @@ const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
       setTableState(view.view_state);
       viewApplied.current = true;
     }
-  }, [defaultView, savedViews]);
+  }, [defaultView, savedViews, releaseData]);
 
   const table = useMaterialReactTable<Release>({
     columns,
@@ -160,7 +159,7 @@ const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
   return (
     <>
       <MaterialReactTable table={table} />
-      <ReleaseDrawer
+      <ReleaseDetailDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         rowData={selectedRow}
