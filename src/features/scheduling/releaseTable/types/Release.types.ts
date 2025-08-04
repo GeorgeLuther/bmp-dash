@@ -28,7 +28,9 @@ export interface Release {
   //  PRODUCTION
   date_to_production_manager: string; // traveler to production (column D)
   week_projected: string; // WEEK ENDING, STORED FOR WHOLE BANNER SECTION (column C)
-
+  date_to_floor: string; // date to floor (column D)
+  date_production_started: string; // date production started (column E)
+  production_complete_at: string; // production completed ???
   //  QUANTITIES
   ms_order_quantity: string; // order qty (column K)
   ms_po_quantity: string; // PO QTY (column H)
@@ -49,6 +51,7 @@ export interface Release {
   //  CNC
   global_or_vt30: string; // G/V (column Y)
   cnc_hours: number; // CNC HOURS (column Z)
+
   //  BRAKE PRESS AREA
   coastone_hours: number; // COAST ONE HRS (column AE)
   hem_and_flat_hours: number; // HEM / FLAT (column AF)
@@ -59,6 +62,7 @@ export interface Release {
   //  WELDING
   mig_hours: number; // MIG (column AK)
   tig_hours: number; // TIG (column AL)
+  weld_hours: number; // ??
   weld_rivet_hours: number; // WELD / RIVET (column AM)
   small_box_hours: number; // SMALL BOX (column AN)
   large_box_hours: number; // LARGE BOX (column AO)
