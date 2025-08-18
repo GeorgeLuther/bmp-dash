@@ -6,3 +6,4 @@ export default function WeldPage() {
     <Typography>Welder's Schedule w/ KPIs at top? will show here</Typography>
   );
 }
+0;

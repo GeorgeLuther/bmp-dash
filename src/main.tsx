@@ -1,13 +1,26 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
+import { Navigate } from "react-router";
+
 import App from "./App";
 import Layout from "./layouts/dashboard";
-import AllReleasesPage from "./features/scheduling/pages";
-//import WeldPage from "./pages/weld";
 import SignInPage from "./pages/signin";
-import AccountPage from "./pages/account";
 
+// Pages
+
+import AccountPage from "./features/account/Pages/account";
+
+import WipPage from "./pages/WorkInProgress"; // placeholder until real pages exist
+
+import SchedulingLandingPage from "./features/scheduling/pages/SchedulingLandingPage";
+import AllReleasesPage from "./features/scheduling/pages/AllReleases";
+import WeldingSchedule from "./features/scheduling/pages/WeldSchedule";
+
+import QualityLandingPage from "./features/quality/pages/QualityLandingPage";
+import ProcessMapStudio from "./features/quality/pages/ProcessMapStudio";
+
+// IMPORTANT: child paths below MUST match the NAVIGATION "segment" values in App.tsx
 const router = createBrowserRouter([
   {
     Component: App,
@@ -16,24 +29,55 @@ const router = createBrowserRouter([
         path: "/",
         Component: Layout,
         children: [
+          // Landing page
           {
-            index: true,
-            Component: AllReleasesPage,
+            path: "scheduling",
+
+            children: [
+              {
+                index: true, // This makes it the default child
+                Component: QualityLandingPage,
+                handle: { title: "Quality Overview" },
+              },
+              {
+                path: "all_releases",
+                Component: AllReleasesPage,
+                handle: { title: "All Releases" },
+              },
+              {
+                path: "welding_schedule",
+                Component: WeldingSchedule,
+                handle: { title: "Welding Schedules" },
+              },
+            ],
           },
           {
-            path: "all_releases",
-            Component: AllReleasesPage,
+            path: "quality",
+
+            children: [
+              {
+                path: "process_maps",
+                Component: ProcessMapStudio,
+                handle: { title: "Process Map Studio" },
+              },
+              // {
+              //   path: "weld_schedule",
+              //   Component: WeldingSchedule,
+              //   handle: { title: "Welding Schedule" },
+              // },
+            ],
           },
+          // You have a top-level "account" in NAVIGATION → add the route too:
           {
             path: "account",
             Component: AccountPage,
+            handle: { title: "Account" },
           },
         ],
       },
-      {
-        path: "/sign-in",
-        Component: SignInPage,
-      },
+
+      // Auth
+      { path: "/sign-in", Component: SignInPage },
     ],
   },
 ]);

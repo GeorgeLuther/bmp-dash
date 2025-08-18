@@ -1,14 +1,29 @@
 import * as React from "react";
-import CalendarMonth from "@mui/icons-material/CalendarMonth";
-import TableChart from "@mui/icons-material/TableChart";
+
+import { supabase } from "./supabase/client";
+(window as any).supabase = supabase;
+
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
-import { supabase } from "./supabase/client";
-(window as any).supabase = supabase;
+
 import SessionContext, { type Session } from "./contexts/SessionContext";
 import { PersonnelProvider } from "./contexts/PersonnelContext";
-import { AccountBox } from "@mui/icons-material";
+
+import {
+  TableChart,
+  CalendarMonth,
+  AccountBox,
+  Dashboard,
+  School,
+  Event,
+  Groups,
+  Verified,
+  SchemaOutlined,
+  ContentPasteSearch,
+  AssignmentTurnedInOutlined,
+  Straighten,
+} from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
   {
@@ -16,12 +31,36 @@ const NAVIGATION: Navigation = [
     title: "Main items",
   },
   {
+    segment: "scheduling",
     title: "Scheduling",
     icon: <CalendarMonth />,
     children: [
       {
+        // This new entry links to the index route at "/scheduling"
+        segment: "", // An empty segment points to the parent's path
+        title: "Overview",
+        icon: <Dashboard />,
+      },
+      {
         segment: "all_releases",
         title: "All Releases",
+        icon: <TableChart />,
+      },
+      {
+        segment: "welding_schedule",
+        title: "Welding Schedule",
+        icon: <TableChart />,
+      },
+    ],
+  },
+  {
+    segment: "quality",
+    title: "Quality",
+    icon: <CalendarMonth />,
+    children: [
+      {
+        segment: "process_maps",
+        title: "Process Maps",
         icon: <TableChart />,
       },
     ],
