@@ -132,3 +132,27 @@ export function SvgDatabase({ strokeWidth = 1.75, ...rest }: SvgProps) {
     </svg>
   );
 }
+
+export function SvgAction({
+  w,
+  h,
+  fill = "white",
+  stroke = "#999",
+}: {
+  w: number;
+  h: number;
+  fill?: string;
+  stroke?: string;
+}) {
+  const notch = 12; // the little “point” on the right
+  return (
+    <svg width={w} height={h}>
+      <path
+        d={`M0,0 H${w - notch} L${w},${h / 2} L${w - notch},${h} H0 Z`}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={1.5}
+      />
+    </svg>
+  );
+}

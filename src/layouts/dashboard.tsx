@@ -1,3 +1,5 @@
+// dashboard.tsx
+
 import * as React from "react";
 import LinearProgress from "@mui/material/LinearProgress";
 import { Outlet, Navigate, useLocation } from "react-router";
@@ -20,6 +22,10 @@ function CustomAccount() {
 export default function Layout() {
   const { session, loading } = useSession();
   const location = useLocation();
+  const fullBleedRoutes = ["/quality/process-maps"]; // <-- adjust to your route
+  const isFullBleed = fullBleedRoutes.some((p) =>
+    location.pathname.startsWith(p)
+  );
 
   if (loading) {
     return (
