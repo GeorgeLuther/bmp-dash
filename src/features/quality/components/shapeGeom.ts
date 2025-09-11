@@ -1,6 +1,6 @@
 // Shared geometry helpers (single source of numbers)
 export const baseGeom = (G: number) => {
-  const w = 8 * G, h = 4 * G, r = G / 12;
+  const w = 6.5 * G, h = 4 * G, r = G / 12;
   return { w, h, r };
 };
 
@@ -18,7 +18,7 @@ export const termGeom = (G: number) => {
 
 export const docGeom = (G: number) => {
   const { w, h, r } = baseGeom(G);
-  const wave = h * 0.12;
+  const wave = h * 0.20;
   return { w, h, r, wave };
 };
 
@@ -31,6 +31,6 @@ export const ioGeom = (G: number) => {
 export const dbGeom = (G: number) => {
   const { w, h } = baseGeom(G);
   const rx = w * 0.25;
-  const ry = Math.min(h * 0.12, rx);
+  const ry = Math.min(h * 0.2, rx);
   return { w, h, rx, ry };
 };

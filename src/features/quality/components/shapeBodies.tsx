@@ -1,4 +1,4 @@
-import { useTheme } from "@mui/material";
+import { useTheme, alpha } from "@mui/material";
 import {
   baseGeom,
   actionGeom,
@@ -26,12 +26,26 @@ export type BodyProps = {
   style?: React.CSSProperties;
 };
 
+const SHAPE_FILL_DEFAULTS: Record<ShapeId, string> = {
+  terminator: "#E8F7C5", // Start/End (mint)
+  process: "#CFEFFF", // Process (sky)
+  action: "#BFE8FF", // Action (cyan)
+  decision: "#FFE5B3", // Decision (peach)
+  document: "#D7E7FF", // Document (powder blue)
+  io: "#DCD9FF", // I/O (periwinkle)
+  database: "#E8D7FF", // Database (lavender)
+};
+
 const NS = { vectorEffect: "non-scaling-stroke" as const };
-function useColors(fill?: string, stroke?: string) {
+// expand by half the stroke on every side
+const vbWithStroke = (w: number, h: number, s: number) =>
+  `${-s / 2} ${-s / 2} ${w + s} ${h + s}`;
+
+function useColors(kind: ShapeId, fill?: string, stroke?: string) {
   const t = useTheme();
   return {
-    f: fill ?? t.palette.primary.main,
-    s: stroke ?? t.palette.secondary.main,
+    f: fill ?? SHAPE_FILL_DEFAULTS[kind],
+    s: stroke ?? alpha(t.palette.text.primary, 0.7),
   };
 }
 
@@ -43,10 +57,15 @@ export function ProcessBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("process", fill, stroke);
   const { w, h, r } = baseGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <rect
         x={0}
         y={0}
@@ -71,10 +90,15 @@ export function ActionBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("action", fill, stroke);
   const { w, h, r, notch } = actionGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <path
         d={`M 0 ${r} Q 0 0 ${r} 0 H ${w - notch} L ${w} ${h / 2} L ${w - notch} ${h} H ${r} Q 0 ${h} 0 ${h - r} Z`}
         fill={f}
@@ -87,7 +111,7 @@ export function ActionBody({
   );
 }
 
-// 3) Terminator (capsule)
+// 3) Terminator (obround)
 export function TerminatorBody({
   G = 24,
   strokeWidth = 1,
@@ -95,10 +119,15 @@ export function TerminatorBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("terminator", fill, stroke);
   const { w, h, rx } = termGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <rect
         x={0}
         y={0}
@@ -123,10 +152,15 @@ export function DecisionBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("decision", fill, stroke);
   const { w, h } = baseGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <path
         d={`M ${w / 2} 0 L ${w} ${h / 2} L ${w / 2} ${h} L 0 ${h / 2} Z`}
         fill={f}
@@ -147,10 +181,15 @@ export function DocumentBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("document", fill, stroke);
   const { w, h, r, wave } = docGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <path
         d={`M 0 ${r} Q 0 0 ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - wave}
             C ${w * 0.75} ${h - wave * 2}, ${w * 0.25} ${h}, 0 ${h - wave} Z`}
@@ -172,10 +211,15 @@ export function IOBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
+  const { f, s } = useColors("io", fill, stroke);
   const { w, h, slant } = ioGeom(G);
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
       <path
         d={`M ${slant} 0 H ${w} L ${w - slant} ${h} H 0 Z`}
         fill={f}
@@ -195,24 +239,41 @@ export function DatabaseBody({
   stroke,
   ...rest
 }: BodyProps) {
-  const { f, s } = useColors(fill, stroke);
-  const { w, h, rx, ry } = dbGeom(G);
+  const { f, s } = useColors("database", fill, stroke);
+  const { w, h, ry } = dbGeom(G);
+
+  const rxArc = w / 2; // ellipse radius in X (half the width)
+
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} {...rest}>
+    <svg
+      width={w}
+      height={h}
+      viewBox={vbWithStroke(w, h, strokeWidth)}
+      {...rest}
+    >
+      {/* Body */}
       <path
-        d={`M 0 ${ry} C 0 ${-ry / 2}, ${w} ${-ry / 2}, ${w} ${ry} V ${h - ry} C ${w} ${h - ry / 2}, 0 ${h - ry / 2}, 0 ${h - ry} Z`}
+        d={[
+          `M 0 ${ry}`,
+          `A ${rxArc} ${ry} 0 0 1 ${w} ${ry}`, // top half
+          `V ${h - ry}`,
+          `A ${rxArc} ${ry} 0 0 1 0 ${h - ry}`, // bottom half
+          `Z`,
+        ].join(" ")}
         fill={f}
         stroke={s}
         strokeWidth={strokeWidth}
         style={NS}
       />
+
+      {/* Top rim = same ellipse, opposite sweep (bottom half), so it's inside */}
       <path
-        d={`M 0 ${ry} C 0 ${ry * 2}, ${w} ${ry * 2}, ${w} ${ry}`}
+        d={`M 0 ${ry} A ${rxArc} ${ry} 0 0 0 ${w} ${ry}`}
         fill="none"
         stroke={s}
         strokeWidth={strokeWidth}
         style={NS}
-        opacity={0.4}
+        opacity={0.5}
       />
     </svg>
   );

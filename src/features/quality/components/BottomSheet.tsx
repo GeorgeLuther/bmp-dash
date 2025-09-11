@@ -24,7 +24,7 @@ export default function BottomSheet({
         left: 0,
         right: 0,
         bottom: 0,
-        height: open ? expandedHeight : collapsedHeight,
+        height: open ? "auto" : collapsedHeight,
         transition: "height 200ms cubic-bezier(0.4, 0, 0.2, 1)",
         bgcolor: "background.paper",
         borderTopLeftRadius: 2,
@@ -71,7 +71,9 @@ export default function BottomSheet({
       </Box>
 
       {/* Content */}
-      <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>{children}</Box>
+      {open ? (
+        <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>{children}</Box>
+      ) : null}
     </Box>
   );
 }
