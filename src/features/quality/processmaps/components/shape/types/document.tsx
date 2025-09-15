@@ -1,0 +1,21 @@
+import { type ShapeProps } from ".";
+
+function Document({ width, height, ...svgAttributes }: ShapeProps) {
+  // gentle wave height — capped so it looks good at small sizes
+  const wave = Math.min(14, height * 0.28);
+
+  // Outline:
+  // M 0,0 → H width → down to height - wave → single cubic curve back to (0,height) → close
+  const d = [
+    `M 0 0`,
+    `H ${width}`,
+    `V ${height - wave}`,
+    // tweak the control points if you want a flatter or steeper “document curl”
+    `C ${width * 0.7} ${height + wave * 0.6}, ${width * 0.3} ${height - wave * 1.6}, 0 ${height}`,
+    `Z`,
+  ].join(" ");
+
+  return <path d={d} {...svgAttributes} />;
+}
+
+export default Document;

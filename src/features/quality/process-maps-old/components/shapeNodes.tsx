@@ -151,4 +151,5 @@ export const NODE_TYPES = {
   document: DocumentNode,
   io: IONode,
   database: DatabaseNode,
+  default: ProcessNode,
 } as const;

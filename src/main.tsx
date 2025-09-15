@@ -17,8 +17,9 @@ import SchedulingLandingPage from "./features/scheduling/pages/SchedulingLanding
 import AllReleasesPage from "./features/scheduling/pages/AllReleases";
 import WeldingSchedule from "./features/scheduling/pages/WeldSchedule";
 
-import QualityLandingPage from "./features/quality/pages/QualityLandingPage";
-import ProcessMapStudio from "./features/quality/pages/ProcessMapStudio";
+//import QualityLandingPage from "./features/quality/pages/QualityLandingPage";
+import ProcessMapStudio from "./features/quality/process-maps-old/pages/ProcessMapStudio";
+import ProcessMapsWrapper from "./features/quality/processmaps";
 
 // IMPORTANT: child paths below MUST match the NAVIGATION "segment" values in App.tsx
 const router = createBrowserRouter([
@@ -34,11 +35,11 @@ const router = createBrowserRouter([
             path: "scheduling",
 
             children: [
-              {
-                index: true, // This makes it the default child
-                Component: QualityLandingPage,
-                handle: { title: "Quality Overview" },
-              },
+              // {
+              //   index: true, // This makes it the default child
+              //   Component: QualityLandingPage,
+              //   handle: { title: "Quality Overview" },
+              // },
               {
                 path: "all_releases",
                 Component: AllReleasesPage,
@@ -60,11 +61,11 @@ const router = createBrowserRouter([
                 Component: ProcessMapStudio,
                 handle: { title: "Process Map Studio" },
               },
-              // {
-              //   path: "weld_schedule",
-              //   Component: WeldingSchedule,
-              //   handle: { title: "Welding Schedule" },
-              // },
+              {
+                path: "process_maps_new",
+                Component: ProcessMapsWrapper,
+                handle: { title: "Process Map Studio", fullBleed: true },
+              },
             ],
           },
           // You have a top-level "account" in NAVIGATION → add the route too:

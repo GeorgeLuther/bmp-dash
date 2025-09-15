@@ -41,26 +41,91 @@ export default function ProcessMapStudio() {
   const nodeTypes: NodeTypes = useMemo(() => NODE_TYPES, []);
 
   const initialNodes: ShapeNode[] = [
+    // PROCESS (container)
     {
-      id: "n1",
-      type: "action",
-      position: { x: grid, y: grid },
-      data: { label: "My Test" },
+      id: "proc",
+      type: "default", // or your 'process'/'group' type
+      data: { label: "Process: Order Fulfillment" },
+      position: { x: 0, y: 0 },
+      style: { width: 720, height: 360, padding: 8 },
+      selectable: false,
+    },
+
+    // SUB-PROCESS A (container)
+    {
+      id: "subA",
+      type: "default", // or your 'subprocess'/'group' type
+      data: { label: "Sub-process A: Quote" },
+      parentNode: "proc",
+      position: { x: 24, y: 24 }, // relative to 'proc'
+      style: { width: 320, height: 140, padding: 6 },
+      selectable: false,
+    },
+    // Activities inside Sub-process A
+    {
+      id: "A1",
+      type: "action", // your action node
+      data: { label: "Create Quote" },
+      parentNode: "subA",
+      extent: "parent",
+      position: { x: 16, y: 40 },
     },
     {
-      id: "n2",
-      type: "decision",
-      position: { x: 10 * grid, y: 0 },
-      data: { label: "Next" },
+      id: "A2",
+      type: "action",
+      data: { label: "Send to Customer" },
+      parentNode: "subA",
+      extent: "parent",
+      position: { x: 180, y: 40 },
+    },
+
+    // SUB-PROCESS B (container)
+    {
+      id: "subB",
+      type: "default",
+      data: { label: "Sub-process B: Order" },
+      parentNode: "proc",
+      position: { x: 376, y: 24 },
+      style: { width: 320, height: 140, padding: 6 },
+      selectable: false,
+    },
+    // Activities inside Sub-process B
+    {
+      id: "B1",
+      type: "action",
+      data: { label: "Create Order" },
+      parentNode: "subB",
+      extent: "parent",
+      position: { x: 16, y: 40 },
+    },
+    {
+      id: "B2",
+      type: "action",
+      data: { label: "Confirm & Schedule" },
+      parentNode: "subB",
+      extent: "parent",
+      position: { x: 180, y: 40 },
+    },
+
+    // (optional) a top-level label node inside the process
+    {
+      id: "procLabel",
+      type: "default",
+      data: { label: "High-Level Flow" },
+      parentNode: "proc",
+      position: { x: 24, y: 200 },
+      selectable: false,
+      draggable: false,
+      style: { background: "transparent", border: "none" },
     },
   ];
   const initialEdges: ShapeEdge[] = [
-    {
-      id: "e1",
-      source: "n1",
-      target: "n2",
-      markerEnd: { type: MarkerType.ArrowClosed },
-    },
+    // inside sub-process A
+    { id: "eA1", source: "A1", target: "A2", type: "smoothstep", label: "" },
+    // inside sub-process B
+    { id: "eB1", source: "B1", target: "B2", type: "smoothstep", label: "" },
+    // link A → B at a high level (end of A flows into start of B)
+    { id: "eAB", source: "A2", target: "B1", type: "smoothstep", label: "" },
   ];
 
   const [nodes, setNodes, onNodesChange] =
@@ -123,7 +188,7 @@ export default function ProcessMapStudio() {
   // Default look for any *new* edge
   const defaultEdgeOptions: Partial<RFEdge> = {
     // choose or omit; strings are fine for actual edge types
-    type: "bezier",
+    type: "Step",
     style: { strokeWidth: 2.5 }, // ← thicker line
     markerEnd: {
       type: MarkerType.ArrowClosed,
@@ -164,8 +229,9 @@ export default function ProcessMapStudio() {
           deleteKeyCode={["Backspace", "Delete"]}
           onConnect={onConnect}
           connectionMode={ConnectionMode.Strict}
-          connectionLineType={ConnectionLineType.SimpleBezier} // ghost line type during drag
-          connectionLineStyle={{ strokeWidth: 1.5 }} // ghost line style
+          connectionLineType={ConnectionLineType.Step} // ghost line type during drag
+          connectionLineStyle={{ strokeWidth: 1.5 }} // ghost line styles
+          connectOnClick
           proOptions={{ hideAttribution: true }}
           colorMode={colorMode}
           snapToGrid={snap}

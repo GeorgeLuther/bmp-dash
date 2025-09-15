@@ -42,7 +42,7 @@ export default function Layout() {
 
   return (
     <DashboardLayout slots={{ toolbarAccount: CustomAccount }}>
-      <PageContainer maxWidth={false}>
+      <PageContainer maxWidth={false} disableGutters>
         <Outlet />
       </PageContainer>
     </DashboardLayout>

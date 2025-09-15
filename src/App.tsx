@@ -63,6 +63,11 @@ const NAVIGATION: Navigation = [
         title: "Process Maps",
         icon: <TableChart />,
       },
+      {
+        segment: "process_maps_new",
+        title: "Process Maps New",
+        icon: <TableChart />,
+      },
     ],
   },
   {
