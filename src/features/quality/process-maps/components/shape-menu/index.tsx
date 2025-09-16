@@ -5,7 +5,7 @@ import { Grid, Typography, Box } from "@mui/material";
 function ShapeMenu() {
   return (
     // Replaced div with Box and added responsive width
-    <Box sx={{ width: { xs: "200px", sm: "350px" } }}>
+    <Box sx={{ width: { xs: "200px", sm: "300px" } }}>
       <Typography variant="caption" display="block" sx={{ mb: 1 }}>
         Drag shapes to the canvas
       </Typography>

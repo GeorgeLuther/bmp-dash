@@ -33,9 +33,23 @@ export type ShapeType = keyof typeof ShapeComponents;
 export type ShapeProps = {
   width: number;
   height: number;
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  fillOpacity?: number;
 } & SVGAttributes<SVGElement>;
 
+
 export type ShapeComponentProps = Partial<ShapeProps> & { type: ShapeType };
+
+// describes metadata about a shape TYPE (used by menu/inspector, not the painter itself)
+export type ShapeMeta = {
+  id: ShapeType;
+  label: string;
+  description: string;
+  defaultColor: string;   // for previews / fallback
+  aspectRatio: number;    // width / height for preview boxes
+};
 
 export type ShapeNode = Node<{
   type: ShapeType;
