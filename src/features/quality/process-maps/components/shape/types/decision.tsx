@@ -1,15 +1,7 @@
-import { type ShapeProps, type ShapeMeta } from ".";
+import { type ShapeProps, type ShapeMeta, type ShapeDef } from ".";
 import { generatePath } from "./utils";
 
-export const meta: ShapeMeta = {
-  id: "decision",
-  label: "Decision",
-  description: "Branch point (e.g., Yes / No).",
-  defaultColor: "#42a5f5",
-  aspectRatio: 14 / 10,
-};
-
-function Decision({ width, height, ...svgAttributes }: ShapeProps) {
+function DecisionPath({ width, height, ...svgAttributes }: ShapeProps) {
   const decisionPath = generatePath([
     [0, height / 2],
     [width / 2, 0],
@@ -19,6 +11,17 @@ function Decision({ width, height, ...svgAttributes }: ShapeProps) {
 
   return <path d={decisionPath} {...svgAttributes} />;
 }
+
+const Decision: ShapeDef = {
+  id: "decision",
+  meta: {
+    label: "Decision",
+    description: "Yes/No branch.",
+    defaultColor: "#42a5f5",
+    aspectRatio: 14 / 10,
+  },
+  Component: DecisionPath,
+};
 
 export default Decision;
 

@@ -1,7 +1,6 @@
 import { SVGAttributes } from 'react';
 import type { Node } from '@xyflow/react';
 
-
 import Process from './process';
 import InOut from './in-out';
 import StartEnd from './start-end';
@@ -11,8 +10,6 @@ import Action from './action';
 import Document from './document';
 import Data from './data';
 
-
-
 // here we register all the shapes that are available
 // you can add your own here
 export const ShapeComponents = {
@@ -20,12 +17,20 @@ export const ShapeComponents = {
   'in-out': InOut,
   'start-end': StartEnd,
   setup: Setup,
-  decision: Decision,
   action: Action,
   document: Document,
-  data: Data,
-  
-  
+  data: Data, 
+};
+
+export const shapes = [Decision] as const; // add more here
+export const shapeMap = Object.fromEntries(
+  (shapes as readonly ShapeDef[]).map(s => [s.id, s])
+) as Record<string, ShapeDef>;
+
+export type ShapeDef = {
+  id: ShapeType;                          // the canonical id
+  meta: ShapeMeta;                        // descriptive facts (no id needed)
+  Component: (p: ShapeProps) => JSX.Element; // dumb SVG painter
 };
 
 export type ShapeType = keyof typeof ShapeComponents;
@@ -33,18 +38,12 @@ export type ShapeType = keyof typeof ShapeComponents;
 export type ShapeProps = {
   width: number;
   height: number;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  fillOpacity?: number;
 } & SVGAttributes<SVGElement>;
-
 
 export type ShapeComponentProps = Partial<ShapeProps> & { type: ShapeType };
 
-// describes metadata about a shape TYPE (used by menu/inspector, not the painter itself)
+// add to the existing file
 export type ShapeMeta = {
-  id: ShapeType;
   label: string;
   description: string;
   defaultColor: string;   // for previews / fallback
