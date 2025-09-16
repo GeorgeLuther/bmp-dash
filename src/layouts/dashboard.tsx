@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Outlet, Navigate, useLocation } from "react-router";
+import { Outlet, Navigate, useLocation, useMatches } from "react-router";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
-import { PageContainer } from "@toolpad/core/PageContainer";
 import { Account } from "@toolpad/core/Account";
 
 import { useSession } from "../contexts/SessionContext";
@@ -22,10 +21,10 @@ function CustomAccount() {
 export default function Layout() {
   const { session, loading } = useSession();
   const location = useLocation();
-  const fullBleedRoutes = ["/quality/process-maps"]; // <-- adjust to your route
-  const isFullBleed = fullBleedRoutes.some((p) =>
-    location.pathname.startsWith(p)
-  );
+
+  const matches = useMatches();
+  const leaf = matches[matches.length - 2];
+  console.log(leaf);
 
   if (loading) {
     return (
@@ -42,9 +41,7 @@ export default function Layout() {
 
   return (
     <DashboardLayout slots={{ toolbarAccount: CustomAccount }}>
-      <PageContainer maxWidth={false} disableGutters>
-        <Outlet />
-      </PageContainer>
+      <Outlet />
     </DashboardLayout>
   );
 }

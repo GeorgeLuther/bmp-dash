@@ -5,6 +5,7 @@ import type { Node } from '@xyflow/react';
 import Process from './process';
 import InOut from './in-out';
 import StartEnd from './start-end';
+import Setup from './setup';
 import Decision from './decision';
 import Action from './action';
 import Document from './document';
@@ -18,6 +19,7 @@ export const ShapeComponents = {
   process: Process,
   'in-out': InOut,
   'start-end': StartEnd,
+  setup: Setup,
   decision: Decision,
   action: Action,
   document: Document,

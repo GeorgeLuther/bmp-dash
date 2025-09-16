@@ -5,16 +5,17 @@ export function generatePath(points: number[][]) {
 }
 
 export const shapeColors: Record<
-  'process' | 'in-out' | 'start-end' | 'decision' | 'action' | 'document' | 'data',
+  'process' | 'in-out' | 'start-end' |'setup' | 'decision' | 'action' | 'document' | 'data',
   string
 > = {
   process:   '#9dc7f7ff', // blue
   'in-out':  '#00a2aeff', // teal
   'start-end': '#cececeff', // neutral
-  decision:  '#fd9947ff', // orange
+  setup:    '#673abbff', // plum
+  decision: '#fd9947ff', // orange
   action:    '#ffd071ff', // yellow
   document:  '#7ad9e6ff', // turquoise
-  data:      '#af5bc9ff', // plumb
+  data:      '#af5bc9ff', // magenta
 };
 
 export function getDefaultColor(type: string): string {

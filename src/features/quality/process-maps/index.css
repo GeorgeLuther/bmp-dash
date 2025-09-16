@@ -46,43 +46,6 @@ body,
   opacity: 1;
 }
 
-.shape-menu-label {
-  font-size: 12px;
-  margin-bottom: 4px;
-  user-select: none;
-}
-
-.shape-menu-items {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2px;
-}
-
-.shape-menu-item {
-  opacity: 0.5;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
-}
-
-.shape-menu-item > svg {
-  stroke: #222;
-}
-
-.shape-menu-item:hover {
-  opacity: 1;
-  background-color: var(--background);
-}
-
-.shape-menu-item-drag-image {
-  transform: translate(0, 0);
-  position: absolute;
-  top: -100000px;
-  left: -1000000px;
-}
-
 .color-swatch {
   width: 28px;
   height: 28px;

@@ -86,7 +86,7 @@ function ShapesFlow() {
   return (
     <ReactFlow
       proOptions={{ hideAttribution: true }}
-      fitView
+      //fitView
       colorMode={colorMode}
       minZoom={0.1}
       maxZoom={4}

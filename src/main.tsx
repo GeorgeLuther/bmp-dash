@@ -19,7 +19,8 @@ import WeldingSchedule from "./features/scheduling/pages/WeldSchedule";
 
 //import QualityLandingPage from "./features/quality/pages/QualityLandingPage";
 import ProcessMapStudio from "./features/quality/process-maps-old/pages/ProcessMapStudio";
-import ProcessMapsWrapper from "./features/quality/processmaps";
+import ProcessMapsWrapper from "./features/quality/process-maps";
+import StandardPageLayout from "./layouts/StandardPageLayout";
 
 // IMPORTANT: child paths below MUST match the NAVIGATION "segment" values in App.tsx
 const router = createBrowserRouter([
@@ -33,7 +34,7 @@ const router = createBrowserRouter([
           // Landing page
           {
             path: "scheduling",
-
+            Component: StandardPageLayout,
             children: [
               // {
               //   index: true, // This makes it the default child

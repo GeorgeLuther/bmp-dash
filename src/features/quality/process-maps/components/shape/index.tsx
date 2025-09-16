@@ -3,22 +3,30 @@ import { ShapeComponents, type ShapeComponentProps } from "./types";
 function Shape({ type, width, height, ...svgAttributes }: ShapeComponentProps) {
   const ShapeComponent = ShapeComponents[type];
 
+  // The component still needs numbers to work, so we'll return null if they aren't provided.
   if (!ShapeComponent || !width || !height) {
     return null;
   }
+
+  // Ensure width and height are numbers before calculation
+  const numericWidth = Number(width);
+  const numericHeight = Number(height);
 
   const strokeWidth = svgAttributes.strokeWidth
     ? +svgAttributes.strokeWidth
     : 0;
 
-  // we subtract the strokeWidth to make sure the shape is not cut off
-  // this is done because svg doesn't support stroke inset (https://stackoverflow.com/questions/7241393/can-you-control-how-an-svgs-stroke-width-is-drawn)
-  const innerWidth = width - 2 * strokeWidth;
-  const innerHeight = height - 2 * strokeWidth;
+  const innerWidth = numericWidth - 2 * strokeWidth;
+  const innerHeight = numericHeight - 2 * strokeWidth;
 
   return (
-    <svg width={width} height={height} className="shape-svg">
-      {/* this offsets the shape by the strokeWidth so that we have enough space for the stroke */}
+    // The SVG will scale to fill its parent, while the viewBox maintains the aspect ratio.
+    <svg
+      width="100%"
+      height="100%"
+      viewBox={`0 0 ${numericWidth} ${numericHeight}`}
+      className="shape-svg"
+    >
       <g
         transform={`translate(${svgAttributes.strokeWidth ?? 0}, ${
           svgAttributes.strokeWidth ?? 0
