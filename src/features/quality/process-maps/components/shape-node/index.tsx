@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import {
-  NodeResizer,
+  Node,
+  //NodeResizer,
   type NodeProps,
   Handle,
   Position,
@@ -8,9 +9,12 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 
+import { ShapeNodeData } from "../shape/types";
 import Shape from "../shape";
-import ShapeNodeToolbar from "../toolbar";
-import { type ShapeNode } from "../shape/types";
+//import ShapeNodeToolbar from "../toolbar";
+
+// This is the final, complete type for our custom node
+export type ShapeFlowNode = Node<ShapeNodeData, "shape">;
 
 const handlePositions = [
   Position.Top,
@@ -25,7 +29,7 @@ function ShapeNode({
   data,
   width,
   height,
-}: NodeProps<ShapeNode>) {
+}: NodeProps<ShapeNodeData>) {
   const { color, type } = data;
   const { updateNodeData } = useReactFlow();
   const shiftKeyPressed = useKeyPress("Shift");
@@ -48,7 +52,7 @@ function ShapeNode({
       <Shape
         type={type}
         width={width}
-        height={height}
+        height={height ?? 2}
         fill={color}
         strokeWidth={2}
         stroke={color}

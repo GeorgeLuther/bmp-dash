@@ -1,5 +1,4 @@
 import { SVGAttributes } from 'react';
-import type { Node } from '@xyflow/react';
 
 import Process from './definitions/process';
 import InOut from './definitions/in-out';
@@ -55,8 +54,9 @@ export const getShapeById = (id: string) => shapeMap[id as ShapeType] || null;
 export type ShapeNodeData = {
   type: ShapeType;
   color: string;
-  label: string;
+  label?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  w?: number;
+  h?: number;
 };
-
-// This is the final, complete type for our custom node
-export type ShapeNode = Node<ShapeNodeData>;
