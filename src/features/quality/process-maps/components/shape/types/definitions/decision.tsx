@@ -1,5 +1,5 @@
-import { type ShapeProps, type ShapeMeta, type ShapeDef } from ".";
-import { generatePath } from "./utils";
+import { type ShapeProps, type ShapeDef } from "..";
+import { generatePath } from "../utils";
 
 function DecisionPath({ width, height, ...svgAttributes }: ShapeProps) {
   const decisionPath = generatePath([
@@ -16,8 +16,8 @@ const Decision: ShapeDef = {
   id: "decision",
   meta: {
     label: "Decision",
-    description: "Yes/No branch.",
-    defaultColor: "#42a5f5",
+    description: "Branching point, Yes/No, etc.",
+    defaultColor: "#fd9947ff",
     aspectRatio: 14 / 10,
   },
   Component: DecisionPath,

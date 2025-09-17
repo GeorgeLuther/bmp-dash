@@ -1,5 +1,5 @@
 import ShapeMenuItem from "./shape-menu-item";
-import { ShapeComponents, ShapeType } from "../shape/types";
+import { shapes, ShapeType } from "../shape/types";
 import { Grid, Typography, Box } from "@mui/material";
 
 function ShapeMenu() {
@@ -10,7 +10,7 @@ function ShapeMenu() {
         Drag shapes to the canvas
       </Typography>
       <Grid container spacing={1}>
-        {Object.keys(ShapeComponents).map((type) => (
+        {Object.keys(shapes).map((type) => (
           <ShapeMenuItem type={type as ShapeType} key={type} />
         ))}
       </Grid>

@@ -1,4 +1,4 @@
-import { type ShapeProps } from "..";
+import { type ShapeProps } from "../..";
 
 function Circle({ width, height, ...svgAttributes }: ShapeProps) {
   return (

@@ -24,8 +24,7 @@ import "@xyflow/react/dist/style.css";
 
 import { defaultNodes, defaultEdges } from "./initial-elements";
 import ShapeNodeComponent from "./components/shape-node";
-import { ShapeNode, ShapeType } from "./components/shape/types";
-import { getDefaultColor } from "./components/shape/types/utils";
+import { shapeMap, ShapeNode, ShapeType } from "./components/shape/types";
 
 import ShapeMenu from "./components/shape-menu";
 import MiniMapNode from "./components/minimap-node";
@@ -71,7 +70,7 @@ function ShapesFlow() {
       style: { width: 140, height: 100 },
       data: {
         type,
-        color: getDefaultColor(type),
+        color: shapeMap[type]?.meta.defaultColor || "#000000",
       },
       selected: true,
     };

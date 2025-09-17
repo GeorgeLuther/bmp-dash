@@ -1,4 +1,4 @@
-import { type ShapeProps } from "../";
+import { type ShapeProps } from "../..";
 
 function RoundRect({ width, height, ...svgAttributes }: ShapeProps) {
   const rounding = Math.min(12, 0.2 * Math.min(width, height));

@@ -3,17 +3,17 @@ import { Grid, Box, useTheme } from "@mui/material";
 import { lighten } from "@mui/material/styles";
 
 import Shape from "../shape";
-import { type ShapeType } from "../shape/types";
-import { getDefaultColor } from "../shape/types/utils";
-
+import { type ShapeType, getShapeById } from "../shape/types";
 type ShapeMenuItemProps = {
   type: ShapeType;
 };
 
 function ShapeMenuItem({ type }: ShapeMenuItemProps) {
-  const color = getDefaultColor(type);
-  const strokeColor = lighten(color, 0.3); // Generate a color 30% lighter
   const theme = useTheme();
+  const shapeDef = getShapeById(type);
+  const color = shapeDef?.meta.defaultColor;
+  const strokeColor = lighten(color, 0.3); // Generate a color 30% lighter
+
   const dragImageRef = useRef<HTMLDivElement>(null);
 
   const onDragStart = (event: DragEvent<HTMLDivElement>) => {
@@ -38,10 +38,12 @@ function ShapeMenuItem({ type }: ShapeMenuItemProps) {
           "&:hover": {
             backgroundColor: theme.palette.action.hover,
             boxShadow: `0 0 8px 1px ${color}`,
+            cursor: "grab",
           },
           "&:active": {
             transform: "scale(0.95)",
             backgroundColor: theme.palette.action.selected,
+            cursor: "grabbing",
           },
         }}
       >
@@ -52,6 +54,7 @@ function ShapeMenuItem({ type }: ShapeMenuItemProps) {
           strokeWidth={2}
           width={112}
           height={80}
+          title={shapeDef?.meta.label || type}
         />
       </Box>
     </Grid>
