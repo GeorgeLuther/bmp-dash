@@ -1,5 +1,5 @@
-import { DragEvent, DragEventHandler, useState } from "react";
-
+// ProcessMaps.tsx (main flow)
+import { useCallback, type DragEvent, useState } from "react";
 import { Paper, useTheme } from "@mui/material";
 import { GridOn, GridOff } from "@mui/icons-material";
 
@@ -11,30 +11,30 @@ import {
   MarkerType,
   ConnectionMode,
   Panel,
-  NodeTypes,
-  DefaultEdgeOptions,
+  type NodeTypes,
+  type DefaultEdgeOptions,
   Controls,
   ControlButton,
   useReactFlow,
   MiniMap,
-  SnapGrid,
+  type SnapGrid,
 } from "@xyflow/react";
-
 import "@xyflow/react/dist/style.css";
 
 import { defaultNodes, defaultEdges } from "./initial-elements";
-import ShapeNodeComponent from "./components/shape-node";
-import { shapeMap, ShapeNode, ShapeType } from "./components/shape/types";
-
+import ShapeNodeComponent, {
+  type ShapeFlowNode,
+} from "./components/shape-node";
+import {
+  shapeMap,
+  type ShapeType,
+  getShapeById,
+} from "./components/shape/types";
 import ShapeMenu from "./components/shape-menu";
 import MiniMapNode from "./components/minimap-node";
-
 import "./index.css";
-import { PageContainer } from "@toolpad/core";
 
-const nodeTypes: NodeTypes = {
-  shape: ShapeNodeComponent,
-};
+const nodeTypes: NodeTypes = { shape: ShapeNodeComponent };
 
 const defaultEdgeOptions: DefaultEdgeOptions = {
   type: "smoothstep",
@@ -45,47 +45,67 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
 const snapGrid: SnapGrid = [10, 10];
 
 function ShapesFlow() {
-  const [toggleGrid, setToggleGrid] = useState(true);
-  const colorMode = useTheme().palette.mode === "dark" ? "dark" : "light";
-  const { screenToFlowPosition, setNodes } = useReactFlow<ShapeNode>();
+  const theme = useTheme();
+  const colorMode = theme.palette.mode === "dark" ? "dark" : "light";
 
-  const onDragOver = (evt: DragEvent<HTMLDivElement>) => {
+  // If you want strict typing, you can parametrize useReactFlow with your node type.
+  // Edges can be left inferred unless you have a custom edge data type.
+  const { screenToFlowPosition, setNodes } = useReactFlow<ShapeFlowNode>();
+
+  const onDragOver = useCallback((evt: DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
     evt.dataTransfer.dropEffect = "move";
-  };
+  }, []);
 
-  // this function is called when a node from the sidebar is dropped onto the react flow pane
-  const onDrop: DragEventHandler = (evt: DragEvent<HTMLDivElement>) => {
-    evt.preventDefault();
-    const type = evt.dataTransfer.getData("application/reactflow") as ShapeType;
+  const onDrop = useCallback(
+    (evt: DragEvent<HTMLDivElement>) => {
+      evt.preventDefault();
 
-    // this will convert the pixel position of the node to the react flow coordinate system
-    // so that a node is added at the correct position even when viewport is translated and/or zoomed in
-    const position = screenToFlowPosition({ x: evt.clientX, y: evt.clientY });
+      // type id dragged from the shape menu
+      const type = evt.dataTransfer.getData("application/reactflow") as
+        | ShapeType
+        | "";
+      if (!type) return;
 
-    const newNode: ShapeNode = {
-      id: Date.now().toString(),
-      type: "shape",
-      position,
-      style: { width: 140, height: 100 },
-      data: {
-        type,
-        color: shapeMap[type]?.meta.defaultColor || "#000000",
-      },
-      selected: true,
-    };
+      const meta = getShapeById(type)?.meta;
+      const aspect = meta?.aspectRatio ?? 2; // width / height
 
-    setNodes((nodes) =>
-      (nodes.map((n) => ({ ...n, selected: false })) as ShapeNode[]).concat([
-        newNode,
-      ])
-    );
-  };
+      // where in the flow canvas to place it
+      const position = screenToFlowPosition({ x: evt.clientX, y: evt.clientY });
+
+      // pick a nice default size; derive height from aspect
+      const w = 140;
+      const h = Math.round(w / aspect);
+
+      const node: ShapeFlowNode = {
+        id: crypto?.randomUUID?.() ?? String(Date.now()),
+        type: "shape",
+        position,
+        data: {
+          type,
+          color: meta?.defaultColor ?? "#111",
+        },
+        // let RF own box size from the start (better with resizer, fitView, etc.)
+        initialWidth: w,
+        initialHeight: h,
+        selected: true,
+      };
+
+      // one pass: clear old selection, then add the new node selected
+      setNodes((prev) =>
+        prev
+          .map((n) => (n.selected ? { ...n, selected: false } : n))
+          .concat(node)
+      );
+    },
+    [screenToFlowPosition, setNodes]
+  );
+
+  const [toggleGrid, setToggleGrid] = useState(true);
 
   return (
     <ReactFlow
       proOptions={{ hideAttribution: true }}
-      //fitView
       colorMode={colorMode}
       minZoom={0.1}
       maxZoom={4}
@@ -98,15 +118,17 @@ function ShapesFlow() {
       connectionLineType={ConnectionLineType.SmoothStep}
       connectionMode={ConnectionMode.Loose}
       deleteKeyCode={["Backspace", "Delete"]}
-      onDrop={onDrop}
       onDragOver={onDragOver}
+      onDrop={onDrop}
     >
       {toggleGrid && <Background />}
+
       <Panel position="bottom-left">
-        <Paper elevation={3} sx={{ m: 1, padding: 1 }}>
+        <Paper elevation={3} sx={{ m: 1, p: 1 }}>
           <ShapeMenu />
         </Paper>
       </Panel>
+
       <Controls position="top-right">
         <ControlButton
           title={toggleGrid ? "Disable snap to grid" : "Enable snap to grid"}
@@ -120,17 +142,16 @@ function ShapesFlow() {
           )}
         </ControlButton>
       </Controls>
+
       <MiniMap zoomable draggable nodeComponent={MiniMapNode} />
     </ReactFlow>
   );
 }
 
-function ProcessMapsWrapper() {
+export default function ProcessMapsWrapper() {
   return (
     <ReactFlowProvider>
       <ShapesFlow />
     </ReactFlowProvider>
   );
 }
-
-export default ProcessMapsWrapper;

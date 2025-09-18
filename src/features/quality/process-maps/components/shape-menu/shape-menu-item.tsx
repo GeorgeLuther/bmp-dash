@@ -12,6 +12,7 @@ function ShapeMenuItem({ type }: ShapeMenuItemProps) {
   const theme = useTheme();
   const shapeDef = getShapeById(type);
   const color = shapeDef?.meta.defaultColor;
+
   const strokeColor = lighten(color, 0.3); // Generate a color 30% lighter
 
   const dragImageRef = useRef<HTMLDivElement>(null);

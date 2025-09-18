@@ -1,21 +1,21 @@
-import { type MiniMapNodeProps, useInternalNode } from "@xyflow/react";
-import { ShapeComponents, ShapeNode } from "../shape/types";
+import { memo } from "react";
+import { type MiniMapNodeProps, type Node, useReactFlow } from "@xyflow/react";
+import { type ShapeNodeData } from "../shape/types";
+import Shape from "../shape";
+import { ShapeFlowNode } from "../shape-node";
 
 // the custom minimap node is being used to render the shapes of the nodes in the minimap, too
 function MiniMapNode({ id, width, height, x, y, selected }: MiniMapNodeProps) {
-  // get the node data to render the shape accordingly
-  const internalNode = useInternalNode<ShapeNode>(id);
+  const { getNode } = useReactFlow();
 
-  if (!internalNode) {
-    return;
-  }
+  // Grab the public node object; safer than internals across 12.x
+  const n = getNode(id) as ShapeFlowNode | undefined;
+  if (!n || n.type !== "shape") return null;
 
-  const { color, type } = internalNode.internals.userNode.data;
-  if (!color || !type) {
-    return null;
-  }
+  const { type, color, stroke, strokeWidth } = n.data;
+  if (!type || !color) return null;
 
-  const ShapeComponent = ShapeComponents[type];
+  // Keep the minimap glyphs clean—very thin stroke; tiny bump when selected
 
   return (
     <g
@@ -26,14 +26,17 @@ function MiniMapNode({ id, width, height, x, y, selected }: MiniMapNodeProps) {
           : "react-flow__minimap-node"
       }
     >
-      <ShapeComponent
+      <Shape
+        type={type}
         width={width}
         height={height}
         fill={color}
-        strokeWidth={selected ? 6 : 0}
+        stroke={stroke ?? "#111"}
+        strokeWidth={selected ? 2 : 0}
+        vectorEffect="non-scaling-stroke"
       />
     </g>
   );
 }
 
-export default MiniMapNode;
+export default memo(MiniMapNode);

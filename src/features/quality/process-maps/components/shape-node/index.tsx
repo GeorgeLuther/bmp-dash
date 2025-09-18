@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { memo, useCallback } from "react";
 import {
   Node,
   //NodeResizer,
@@ -9,11 +9,11 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 
-import { ShapeNodeData } from "../shape/types";
+import { type ShapeNodeData, getShapeById } from "../shape/types";
 import Shape from "../shape";
 //import ShapeNodeToolbar from "../toolbar";
 
-// This is the final, complete type for our custom node
+// Complete type for custom node
 export type ShapeFlowNode = Node<ShapeNodeData, "shape">;
 
 const handlePositions = [
@@ -29,14 +29,19 @@ function ShapeNode({
   data,
   width,
   height,
-}: NodeProps<ShapeNodeData>) {
-  const { color, type } = data;
+}: NodeProps<ShapeFlowNode>) {
   const { updateNodeData } = useReactFlow();
   const shiftKeyPressed = useKeyPress("Shift");
 
-  const onColorChange = useCallback(
-    (color: string) => {
-      updateNodeData(id, { color });
+  const meta = getShapeById(data.type)?.meta;
+  const aspect = meta?.aspectRatio ?? 2;
+  const DEFAULT_W = 144;
+  const W = width ?? data.w ?? DEFAULT_W; // prefer RF-provided width
+  const H = height ?? data.h ?? Math.round(W / aspect);
+
+  const onLabelChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateNodeData(id, { label: e.target.value });
     },
     [id, updateNodeData]
   );
@@ -50,22 +55,47 @@ function ShapeNode({
         isVisible={selected}
       /> */}
       <Shape
-        type={type}
-        width={width}
-        height={height ?? 2}
-        fill={color}
-        strokeWidth={2}
-        stroke={color}
-        fillOpacity={0.8}
+        type={data.type}
+        width={W}
+        height={H}
+        fill={data.color}
+        stroke={data.stroke ?? "#111"}
+        strokeWidth={data.strokeWidth ?? 2}
+        fillOpacity={0.85}
+        vectorEffect="non-scaling-stroke"
+        title={meta?.label ?? data.type}
       />
-      <input type="text" className="node-label" placeholder={type} />
+      <input
+        type="text"
+        className="node-label"
+        placeholder={meta?.label ?? data.type}
+        value={data.label ?? ""}
+        onChange={onLabelChange}
+        onPointerDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        style={{
+          position: "absolute",
+          inset: 0,
+          margin: "auto",
+          width: "80%",
+          height: 24,
+          border: "none",
+          outline: "none",
+          background: "transparent",
+          textAlign: "center",
+          pointerEvents: "auto",
+          fontSize: 12,
+          fontWeight: 500,
+        }}
+      />
 
       {handlePositions.map((position) => (
         <Handle
+          key={position}
           id={position}
-          style={{ backgroundColor: color }}
           type="source"
           position={position}
+          style={{ backgroundColor: data.color }}
         />
       ))}
     </>
