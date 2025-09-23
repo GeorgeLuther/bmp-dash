@@ -1,6 +1,6 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 
-function StartEndPath({ width, height, ...svgAttributes }: ShapeProps) {
+function StartEndSvg({ width, height, ...svgAttributes }: SvgProps) {
   const rx = Math.min(width / 2, height / 2); // full pill ends
   return (
     <rect
@@ -13,15 +13,14 @@ function StartEndPath({ width, height, ...svgAttributes }: ShapeProps) {
     />
   );
 }
-const StartEnd: ShapeDef = {
+const StartEnd: RawShapeDef = {
   id: "start-end",
   meta: {
     label: "Start / End",
     description: "Mark the beginning or end of a process.",
-    defaultColor: "#ffd071ff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#9b9b9bff",
   },
-  Component: StartEndPath,
+  Component: StartEndSvg,
 };
 
 export default StartEnd;

@@ -1,7 +1,7 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 import { generatePath } from "../utils";
 
-function ActionPath({ width, height, ...svgAttributes }: ShapeProps) {
+function ActionSvg({ width, height, ...svgAttributes }: SvgProps) {
   const skew = width * 0.3;
 
   const actionPath = generatePath([
@@ -14,14 +14,16 @@ function ActionPath({ width, height, ...svgAttributes }: ShapeProps) {
 
   return <path d={actionPath} {...svgAttributes} />;
 }
-const Action: ShapeDef = {
+const Action: RawShapeDef = {
   id: "action",
   meta: {
     label: "Action",
     description: "Operation, task, or step.",
-    defaultColor: "#ffd071ff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#e0b357ff",
+
+    // defaultStroke, defaultStrokeWidth optional; will derive/fallback if omitted
+    //TODO: #3 variant? in the future we may refactor to support multiple variants of a shape
   },
-  Component: ActionPath,
+  Component: ActionSvg,
 };
 export default Action;

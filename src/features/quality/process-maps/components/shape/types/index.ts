@@ -1,62 +1,56 @@
-import { SVGAttributes } from 'react';
-
-import Process from './definitions/process';
-import InOut from './definitions/in-out';
-import StartEnd from './definitions/start-end';
-import Setup from './definitions/setup';
-import Decision from './definitions/decision';
-import Action from './definitions/action';
-import Document from './definitions/document';
-import Data from './definitions/data';
+// process-maps/components/shape/types/index.ts
+import { lighten } from "@mui/material/styles";
+import { rawShapes, type RawShapeDef, type RawShapeMeta, type SvgProps } from "./rawShapes";
 
 // ----- TYPES -----
-export type ShapeProps = {
-  width: number;
-  height: number;
-} & SVGAttributes<SVGElement>;
 
-export type ShapeMeta = {
-  label: string;
-  description: string;
-  defaultColor: string;   // for previews / fallback
-  aspectRatio: number;    // width / height for preview boxes
-};
-
+/** 'Final', normalized shape def used by menu/canvas/minimap */
 export type ShapeDef = {
-  id: string;                          // the canonical id
-  meta: ShapeMeta;                        // descriptive facts
-  Component: (p: ShapeProps) => JSX.Element; // dumb SVG painter
+  id: string;
+  meta: {
+    label: string;
+    description: string;
+    gridAspect: { cols: number, rows: number };
+    defaultFill: string;
+    defaultOpacity: number;
+    defaultStroke: string;
+    defaultStrokeOpacity: number;
+    defaultStrokeWidth: number;
+    [extra: string]: unknown;
+  };
+  Component: (p: SvgProps) => JSX.Element;
 };
 
+// ----- REGISTRY ----- 
+export const shapes = rawShapes
+  .map<ShapeDef | null>((def: RawShapeDef) => {
+    if (!def?.id || typeof def.Component !== "function")  {
+      console.error("Invalid shape def (needs id + Component):", def);
+      return null;
+    }
 
-// ----- REGISTRY -----
-export const shapes = [
-  Process,
-  InOut,
-  StartEnd,
-  Setup,
-  Decision,
-  Action,
-  Document,
-  Data
-] as const satisfies readonly ShapeDef[];
+    const m: RawShapeMeta = def.meta ?? {};
 
-// valid ids are only the ones in 'shapes'
+    return {
+      id: def.id,
+      meta: {
+        label: m.label ?? "Shape",
+        description: m.description ?? "No description",
+        gridAspect: { cols: m.gridAspect?.cols ?? 7, rows: m.gridAspect?.rows ?? 5 },
+        defaultFill: m.defaultFill ?? "#a3a3a3",
+        defaultOpacity: m.defaultOpacity ?? .8,
+        defaultStroke: m.defaultStroke ?? lighten(m.defaultFill ?? "#525252", 0.35),
+        defaultStrokeOpacity: m.defaultStrokeOpacity ?? 1,
+        defaultStrokeWidth: m.defaultStrokeWidth ?? 2,
+      },
+      Component: def.Component,
+    };
+  })
+  .filter((s): s is ShapeDef => s !== null) as readonly ShapeDef[];
+
 export type ShapeType = (typeof shapes)[number]["id"];
+export const shapeMap = Object.fromEntries(shapes.map(s => [s.id, s])) as Record<ShapeType, ShapeDef>;
+export const getShapeById = (id: string): ShapeDef | null => (shapeMap as any)[id] ?? null;
 
-export const shapeMap = Object.fromEntries(
-  shapes.map(s => [s.id, s])
-) as Record<ShapeType, ShapeDef>;
 
-export const getShapeById = (id: string) => shapeMap[id as ShapeType] || null;
-
-// This is the data that is unique to each node instance on the canvas
-export type ShapeNodeData = {
-  type: ShapeType;
-  color: string;
-  label?: string;
-  stroke?: string;
-  strokeWidth?: number;
-  w?: number;
-  h?: number;
-};
+  export type { SvgProps, RawShapeDef } from "./rawShapes";

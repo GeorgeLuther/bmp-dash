@@ -1,21 +1,26 @@
+// process-maps/components/shape-menu/index.tsx
+import { Box, Typography } from "@mui/material";
 import ShapeMenuItem from "./shape-menu-item";
-import { shapeMap, ShapeType } from "../shape/types";
-import { Grid, Typography, Box } from "@mui/material";
+import { shapes, type ShapeType } from "../shape/types";
 
-function ShapeMenu() {
+export default function ShapeMenu() {
   return (
-    // Replaced div with Box and added responsive width
-    <Box sx={{ width: { xs: "200px", sm: "300px" } }}>
-      <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+    <Box sx={{ width: 1 }}>
+      <Typography variant="caption" sx={{ mb: 1, px: 0.5, fontWeight: 600 }}>
         Drag shapes to the canvas
       </Typography>
-      <Grid container spacing={1}>
-        {Object.keys(shapeMap).map((type) => (
-          <ShapeMenuItem type={type as ShapeType} key={type} />
+
+      <Box
+        sx={{
+          display: "grid",
+          gap: 1,
+          gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+        }}
+      >
+        {shapes.map((s) => (
+          <ShapeMenuItem key={s.id} type={s.id as ShapeType} />
         ))}
-      </Grid>
+      </Box>
     </Box>
   );
 }
-
-export default ShapeMenu;

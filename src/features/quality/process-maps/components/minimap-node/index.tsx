@@ -1,38 +1,41 @@
+// src/features/quality/process-maps/components/minimap-node.tsx
 import { memo } from "react";
-import { type MiniMapNodeProps, type Node, useReactFlow } from "@xyflow/react";
-import { type ShapeNodeData } from "../shape/types";
-import Shape from "../shape";
-import { ShapeFlowNode } from "../shape-node";
+import { type MiniMapNodeProps, useInternalNode } from "@xyflow/react";
+import { getShapeById } from "../shape/types";
 
-// the custom minimap node is being used to render the shapes of the nodes in the minimap, too
-function MiniMapNode({ id, width, height, x, y, selected }: MiniMapNodeProps) {
-  const { getNode } = useReactFlow();
+/**
+ * Draw the real shape in the minimap.
+ * - Pulls node data via useInternalNode(id) like the pro example
+ * - Uses node.data.fill if present; otherwise registry defaults
+ * - Slightly thicker stroke when selected
+ */
+function MiniMapNode({ id, x, y, width, height, selected }: MiniMapNodeProps) {
+  const internal = useInternalNode(id);
+  if (!internal) return null;
 
-  // Grab the public node object; safer than internals across 12.x
-  const n = getNode(id) as ShapeFlowNode | undefined;
-  if (!n || n.type !== "shape") return null;
+  // your node data shape
+  const nodeData = (internal.internals.userNode?.data ?? {}) as {
+    type?: string;
+    fill?: string;
+  };
 
-  const { type, color, stroke, strokeWidth } = n.data;
-  if (!type || !color) return null;
+  const def = nodeData.type ? getShapeById(nodeData.type) : null;
+  if (!def?.Component) return null;
 
-  // Keep the minimap glyphs clean—very thin stroke; tiny bump when selected
+  const fill = nodeData.fill ?? def.meta.defaultFill;
+  const sw = Math.max(1, selected ? 2 : (def.meta.defaultStrokeWidth ?? 1));
+
+  const ShapeComponent = def.Component;
 
   return (
-    <g
-      transform={`translate(${x}, ${y})`}
-      className={
-        selected
-          ? "react-flow__minimap-node selected"
-          : "react-flow__minimap-node"
-      }
-    >
-      <Shape
-        type={type}
+    <g transform={`translate(${x}, ${y})`}>
+      <ShapeComponent
         width={width}
         height={height}
-        fill={color}
-        stroke={stroke ?? "#111"}
-        strokeWidth={selected ? 2 : 0}
+        fill={fill}
+        fillOpacity={0.9}
+        strokeOpacity={1}
+        strokeWidth={sw}
         vectorEffect="non-scaling-stroke"
       />
     </g>

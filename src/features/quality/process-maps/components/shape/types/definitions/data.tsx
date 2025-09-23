@@ -1,6 +1,6 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 
-function DataPath({ width, height, ...svgAttributes }: ShapeProps) {
+function DataSvg({ width, height, ...svgAttributes }: SvgProps) {
   const bend = height * 0.125;
 
   return (
@@ -18,14 +18,13 @@ function DataPath({ width, height, ...svgAttributes }: ShapeProps) {
     />
   );
 }
-const Data: ShapeDef = {
+const Data: RawShapeDef = {
   id: "data",
   meta: {
     label: "Data",
     description: "A database table, log, or controlled record.",
-    defaultColor: "#af5bc9ff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#af5bc9",
   },
-  Component: DataPath,
+  Component: DataSvg,
 };
 export default Data;

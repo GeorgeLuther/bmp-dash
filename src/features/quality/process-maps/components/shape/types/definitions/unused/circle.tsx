@@ -1,6 +1,6 @@
-import { type ShapeProps } from "../..";
+import { type SvgProps } from "../../rawShapes";
 
-function Circle({ width, height, ...svgAttributes }: ShapeProps) {
+function Circle({ width, height, ...svgAttributes }: SvgProps) {
   return (
     <ellipse
       cx={width / 2}

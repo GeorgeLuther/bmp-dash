@@ -1,7 +1,7 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 import { generatePath } from "../utils";
 
-function SetupPath({ width, height, ...svgAttributes }: ShapeProps) {
+function SetupSvg({ width, height, ...svgAttributes }: SvgProps) {
   const skew = width * 0.1;
 
   const setupPath = generatePath([
@@ -15,14 +15,13 @@ function SetupPath({ width, height, ...svgAttributes }: ShapeProps) {
 
   return <path d={setupPath} {...svgAttributes} />;
 }
-const Setup: ShapeDef = {
+const Setup: RawShapeDef = {
   id: "setup",
   meta: {
     label: "Setup",
     description: "Preparatory step or activity.",
-    defaultColor: "#673abbff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#673abb",
   },
-  Component: SetupPath,
+  Component: SetupSvg,
 };
 export default Setup;

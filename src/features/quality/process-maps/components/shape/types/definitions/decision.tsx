@@ -1,7 +1,7 @@
-import { type ShapeProps, type ShapeDef } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 import { generatePath } from "../utils";
 
-function DecisionPath({ width, height, ...svgAttributes }: ShapeProps) {
+function DecisionSvg({ width, height, ...svgAttributes }: SvgProps) {
   const decisionPath = generatePath([
     [0, height / 2],
     [width / 2, 0],
@@ -12,17 +12,14 @@ function DecisionPath({ width, height, ...svgAttributes }: ShapeProps) {
   return <path d={decisionPath} {...svgAttributes} />;
 }
 
-const Decision: ShapeDef = {
+const Decision: RawShapeDef = {
   id: "decision",
   meta: {
     label: "Decision",
     description: "Branching point, Yes/No, etc.",
-    defaultColor: "#fd9947ff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#d48543ff",
   },
-  Component: DecisionPath,
+  Component: DecisionSvg,
 };
 
 export default Decision;
-
-//why not set it as one export with decision.path , decision.aspectRatio, etc? or decision.meta.defaultColor

@@ -1,8 +1,7 @@
-// ProcessMaps.tsx (main flow)
+// process-maps/index.tsx
 import { useCallback, type DragEvent, useState } from "react";
 import { Paper, useTheme } from "@mui/material";
 import { GridOn, GridOff } from "@mui/icons-material";
-
 import {
   ReactFlow,
   Background,
@@ -18,6 +17,7 @@ import {
   useReactFlow,
   MiniMap,
   type SnapGrid,
+  BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
@@ -25,14 +25,13 @@ import { defaultNodes, defaultEdges } from "./initial-elements";
 import ShapeNodeComponent, {
   type ShapeFlowNode,
 } from "./components/shape-node";
-import {
-  shapeMap,
-  type ShapeType,
-  getShapeById,
-} from "./components/shape/types";
+import { type ShapeType, getShapeById } from "./components/shape/types";
 import ShapeMenu from "./components/shape-menu";
 import MiniMapNode from "./components/minimap-node";
 import "./index.css";
+
+// ---- single grid unit in pixels (dots + snap + default node size) ----
+const GRID_PX = 24;
 
 const nodeTypes: NodeTypes = { shape: ShapeNodeComponent };
 
@@ -42,14 +41,12 @@ const defaultEdgeOptions: DefaultEdgeOptions = {
   style: { strokeWidth: 2 },
 };
 
-const snapGrid: SnapGrid = [10, 10];
+const snapGrid: SnapGrid = [GRID_PX / 2, GRID_PX / 2];
 
 function ShapesFlow() {
   const theme = useTheme();
   const colorMode = theme.palette.mode === "dark" ? "dark" : "light";
 
-  // If you want strict typing, you can parametrize useReactFlow with your node type.
-  // Edges can be left inferred unless you have a custom edge data type.
   const { screenToFlowPosition, setNodes } = useReactFlow<ShapeFlowNode>();
 
   const onDragOver = useCallback((evt: DragEvent<HTMLDivElement>) => {
@@ -61,37 +58,33 @@ function ShapesFlow() {
     (evt: DragEvent<HTMLDivElement>) => {
       evt.preventDefault();
 
-      // type id dragged from the shape menu
       const type = evt.dataTransfer.getData("application/reactflow") as
         | ShapeType
         | "";
       if (!type) return;
 
       const meta = getShapeById(type)?.meta;
-      const aspect = meta?.aspectRatio ?? 2; // width / height
+      const cols = meta?.gridAspect?.cols ?? 7;
+      const rows = meta?.gridAspect?.rows ?? 5;
 
-      // where in the flow canvas to place it
       const position = screenToFlowPosition({ x: evt.clientX, y: evt.clientY });
 
-      // pick a nice default size; derive height from aspect
-      const w = 140;
-      const h = Math.round(w / aspect);
+      // Default size in grid units so it aligns with dots & snapping
+      const w = cols * GRID_PX;
+      const h = rows * GRID_PX;
 
       const node: ShapeFlowNode = {
         id: crypto?.randomUUID?.() ?? String(Date.now()),
         type: "shape",
         position,
         data: {
-          type,
-          color: meta?.defaultColor ?? "#111",
+          type, // fill/stroke/opacity can be omitted -> ShapeNode falls back to registry defaults
         },
-        // let RF own box size from the start (better with resizer, fitView, etc.)
         initialWidth: w,
         initialHeight: h,
         selected: true,
       };
 
-      // one pass: clear old selection, then add the new node selected
       setNodes((prev) =>
         prev
           .map((n) => (n.selected ? { ...n, selected: false } : n))
@@ -121,10 +114,25 @@ function ShapesFlow() {
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      {toggleGrid && <Background />}
+      {toggleGrid && (
+        <Background variant={BackgroundVariant.Dots} gap={GRID_PX} size={1.5} />
+      )}
 
       <Panel position="bottom-left">
-        <Paper elevation={3} sx={{ m: 1, p: 1 }}>
+        <Paper
+          elevation={4}
+          sx={{
+            borderRadius: 3,
+            p: 1,
+            width: { xs: 260, sm: 300, md: 340 },
+            maxWidth: "92vw",
+            maxHeight: { xs: "60vh", sm: "70vh" },
+            overflow: "auto",
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+          }}
+        >
           <ShapeMenu />
         </Paper>
       </Panel>
@@ -143,7 +151,29 @@ function ShapesFlow() {
         </ControlButton>
       </Controls>
 
-      <MiniMap zoomable draggable nodeComponent={MiniMapNode} />
+      <MiniMap
+        nodeComponent={MiniMapNode}
+        // these get the full node, so we can look at node.data.type
+        nodeColor={(n) =>
+          getShapeById((n.data as any)?.type)?.meta.defaultFill ?? "#9e9e9e"
+        }
+        nodeStrokeColor={(n) =>
+          getShapeById((n.data as any)?.type)?.meta.defaultStroke ?? "#616161"
+        }
+        nodeStrokeWidth={1}
+        pannable
+        zoomable
+        style={{
+          borderRadius: 8,
+          boxShadow: theme.shadows[4],
+          background: theme.palette.mode === "dark" ? "#111" : "#fafafa",
+        }}
+        maskColor={
+          theme.palette.mode === "dark"
+            ? "rgba(0,0,0,0.6)"
+            : "rgba(255,255,255,0.6)"
+        }
+      />
     </ReactFlow>
   );
 }

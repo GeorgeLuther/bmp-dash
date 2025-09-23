@@ -1,7 +1,7 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 import { generatePath } from "../utils";
 
-function InOutPath({ width, height, ...svgAttributes }: ShapeProps) {
+function InOutSvg({ width, height, ...svgAttributes }: SvgProps) {
   // this determines where to place the top-left and bottom-right points of the parallelogram
   const skew = width * 0.25;
 
@@ -14,15 +14,14 @@ function InOutPath({ width, height, ...svgAttributes }: ShapeProps) {
 
   return <path d={inOutPath} {...svgAttributes} />;
 }
-const InOut: ShapeDef = {
+const InOut: RawShapeDef = {
   id: "in-out",
   meta: {
     label: "In / Out",
     description:
       "An input (material, resource, requirement, etc) or output (product, service, decision, etc)",
-    defaultColor: "#00a2aeff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#00a2ae",
   },
-  Component: InOutPath,
+  Component: InOutSvg,
 };
 export default InOut;

@@ -1,4 +1,4 @@
-// Shape.tsx
+// process-maps/components/shape/index.tsx
 import { SVGAttributes, CSSProperties, memo } from "react";
 import { getShapeById, type ShapeType } from "./types"; // your file with shapes[], shapeMap, ShapeType, etc.
 
@@ -32,7 +32,7 @@ function ShapeBase({
   ...paintAttrs
 }: ShapeComponentProps) {
   const def = getShapeById(type);
-  if (!def) return null;
+  if (!def || !width || !height) return null;
 
   const ShapeComponent = def.Component;
   if (!width || !height) return null;
@@ -41,7 +41,7 @@ function ShapeBase({
   const strokeWidth =
     paintAttrs.strokeWidth !== undefined
       ? Number(paintAttrs.strokeWidth) || 0
-      : 0;
+      : (def.meta.defaultStrokeWidth ?? 0);
 
   // Keep inner box non-negative even if someone passes a huge strokeWidth
   const innerWidth = Math.max(0, width - 2 * strokeWidth);

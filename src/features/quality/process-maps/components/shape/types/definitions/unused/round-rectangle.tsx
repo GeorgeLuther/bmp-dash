@@ -1,6 +1,6 @@
-import { type ShapeProps } from "../..";
+import { type SvgProps } from "../../rawShapes";
 
-function RoundRect({ width, height, ...svgAttributes }: ShapeProps) {
+function RoundRect({ width, height, ...svgAttributes }: SvgProps) {
   const rounding = Math.min(12, 0.2 * Math.min(width, height));
 
   return (

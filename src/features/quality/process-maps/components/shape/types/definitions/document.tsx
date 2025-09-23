@@ -1,6 +1,6 @@
-import { type ShapeDef, type ShapeProps } from "..";
+import { type RawShapeDef, type SvgProps } from "../rawShapes";
 
-function DocumentPath({ width, height, ...svgAttributes }: ShapeProps) {
+function DocumentSvg({ width, height, ...svgAttributes }: SvgProps) {
   // gentle wave height — capped so it looks good at small sizes
   const wave = Math.min(14, height * 0.28);
 
@@ -17,15 +17,14 @@ function DocumentPath({ width, height, ...svgAttributes }: ShapeProps) {
 
   return <path d={d} {...svgAttributes} />;
 }
-const Document: ShapeDef = {
+const Document: RawShapeDef = {
   id: "document",
   meta: {
     label: "Document",
     description:
       "Documented information such as a controlled policy (procedure, instruction, reference, etc).",
-    defaultColor: "#7ad9e6ff",
-    aspectRatio: 14 / 10,
+    defaultFill: "#6788e4ff",
   },
-  Component: DocumentPath,
+  Component: DocumentSvg,
 };
 export default Document;

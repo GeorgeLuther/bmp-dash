@@ -1,7 +1,7 @@
-import { type ShapeProps } from "../..";
+import { type SvgProps } from "../../rawShapes";
 import { generatePath } from "../../utils";
 
-function Triangle({ width, height, ...svgAttributes }: ShapeProps) {
+function Triangle({ width, height, ...svgAttributes }: SvgProps) {
   const trianglePath = generatePath([
     [0, height],
     [width / 2, 0],
