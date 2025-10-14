@@ -36,7 +36,7 @@ const GRID_PX = 24;
 const nodeTypes: NodeTypes = { shape: ShapeNodeComponent };
 
 const defaultEdgeOptions: DefaultEdgeOptions = {
-  type: "smoothstep",
+  type: "bezier",
   markerEnd: { type: MarkerType.ArrowClosed },
   style: { strokeWidth: 2 },
 };
