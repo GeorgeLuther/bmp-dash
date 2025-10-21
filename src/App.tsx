@@ -1,3 +1,4 @@
+//App.tsx
 import * as React from "react";
 
 import { supabase } from "./supabase/client";

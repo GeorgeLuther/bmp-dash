@@ -46,7 +46,7 @@ export const personColumns: MRT_ColumnDef<Person>[] = [
   },
 
   { accessorKey: "agency", header: "Agency", size: 140 },
-  { accessorKey: "email_primary", header: "Email", size: 220 },
+  { accessorKey: "email_primary", header: "Main Email", size: 220 },
 
   // Pretty dates, sortable via originals in row.original
   {

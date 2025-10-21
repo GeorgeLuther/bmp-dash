@@ -1,7 +1,7 @@
 // src/features/personnel/api/usePeopleList.ts
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
-import type { Person } from "../components/people-table/person.types";
+import type { Person } from "../components/table/person.types";
 
 // replace with your existing client import if you have one
 const supabase = createClient(
