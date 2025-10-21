@@ -18,10 +18,13 @@ import {
   MiniMap,
   type SnapGrid,
   BackgroundVariant,
+  type OnConnect,
+  type Node,
+  type Edge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { defaultNodes, defaultEdges } from "./initial-elements";
+// import { defaultNodes, defaultEdges } from "./initial-elements";
 import ShapeNodeComponent, {
   type ShapeFlowNode,
 } from "./components/shape-node";
@@ -29,6 +32,10 @@ import { type ShapeType, getShapeById } from "./components/shape/types";
 import ShapeMenu from "./components/shape-menu";
 import MiniMapNode from "./components/minimap-node";
 import "./index.css";
+
+// NEW: Yjs hooks
+import { useYDoc } from "./hooks/useYDoc"; //
+import { useYGraph } from "./hooks/useYGraph"; // binds RF <-> Yjs
 
 // ---- single grid unit in pixels (dots + snap + default node size) ----
 const GRID_PX = 24;
@@ -47,13 +54,42 @@ function ShapesFlow() {
   const theme = useTheme();
   const colorMode = theme.palette.mode === "dark" ? "dark" : "light";
 
-  const { screenToFlowPosition, setNodes } = useReactFlow<ShapeFlowNode>();
+  //pointer -> canvas coord
+  const { screenToFlowPosition } = useReactFlow<ShapeFlowNode>();
+
+  // Join Yjs room
+  // For now a fixed room. Replace with documentId: `map:${documentId}:draft`.
+  const room = "map:demo:draft";
+  const { doc } = useYDoc(room);
+
+  // Controlled graph from Yjs. These arrays are the canonical state.
+  const {
+    nodes, // Node[]
+    edges, // Edge[]
+    onNodesChange, // RF -> Yjs adapter
+    onEdgesChange, // RF -> Yjs adapter
+    writeNodes, // imperative write for custom ops (e.g., drop)
+    writeEdges,
+  } = useYGraph(doc);
+
+  const onConnect: OnConnect = useCallback(
+    (params) => {
+      const edge: Edge = {
+        id: crypto.randomUUID(),
+        type: "bezier",
+        ...params,
+      };
+      writeEdges([...(edges as Edge[]), edge]);
+    },
+    [edges, writeEdges]
+  );
 
   const onDragOver = useCallback((evt: DragEvent<HTMLDivElement>) => {
     evt.preventDefault();
     evt.dataTransfer.dropEffect = "move";
   }, []);
 
+  //now writes into Yjs instead of calling setNodes
   const onDrop = useCallback(
     (evt: DragEvent<HTMLDivElement>) => {
       evt.preventDefault();
@@ -85,27 +121,30 @@ function ShapesFlow() {
         selected: true,
       };
 
-      setNodes((prev) =>
-        prev
-          .map((n) => (n.selected ? { ...n, selected: false } : n))
-          .concat(node)
-      );
+      // writeNodes() fully replaces Yjs nodes with `next`, so we clear selection first
+      const next = (nodes as ShapeFlowNode[])
+        .map((n) => (n.selected ? { ...n, selected: false } : n))
+        .concat(node);
+      writeNodes(next as unknown as Node[]);
     },
-    [screenToFlowPosition, setNodes]
+    [nodes, screenToFlowPosition, writeNodes]
   );
 
   const [toggleGrid, setToggleGrid] = useState(true);
 
   return (
     <ReactFlow
+      nodes={nodes as Node[]}
+      edges={edges as Edge[]}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      onConnect={onConnect}
       proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
       minZoom={0.1}
       maxZoom={4}
       snapGrid={snapGrid}
       snapToGrid={toggleGrid}
-      defaultNodes={defaultNodes}
-      defaultEdges={defaultEdges}
       nodeTypes={nodeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineType={ConnectionLineType.SmoothStep}

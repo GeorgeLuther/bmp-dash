@@ -1,5 +1,3 @@
-import * as React from "react";
-import Typography from "@mui/material/Typography";
 import ReleasesTable from "../releaseTable/ReleasesTable";
 import Box from "@mui/material/Box";
 //import Example from "../components/Example";

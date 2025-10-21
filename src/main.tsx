@@ -22,6 +22,8 @@ import ProcessMapStudio from "./features/quality/process-maps-old/pages/ProcessM
 import ProcessMapsWrapper from "./features/quality/process-maps";
 import StandardPageLayout from "./layouts/StandardPageLayout";
 
+import PersonnelPage from "./features/personnel";
+
 // IMPORTANT: child paths below MUST match the NAVIGATION "segment" values in App.tsx
 const router = createBrowserRouter([
   {
@@ -66,6 +68,27 @@ const router = createBrowserRouter([
                 path: "process_maps_new",
                 Component: ProcessMapsWrapper,
                 handle: { title: "Process Map Studio", fullBleed: true },
+              },
+            ],
+          },
+          {
+            path: "personnel",
+
+            children: [
+              {
+                path: "active",
+                Component: PersonnelPage,
+                handle: { title: "Active Personnel" },
+              },
+              {
+                path: "former",
+                Component: PersonnelPage,
+                handle: { title: "Former Personnel" },
+              },
+              {
+                path: "prospective",
+                Component: PersonnelPage,
+                handle: { title: "Prospective Personnel" },
               },
             ],
           },

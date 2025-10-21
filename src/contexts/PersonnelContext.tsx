@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   ReactNode,
+  useMemo,
 } from "react";
 import { supabase } from "../supabase/client";
 import { useSession } from "./SessionContext";
@@ -124,10 +125,18 @@ export const PersonnelProvider = ({ children }: { children: ReactNode }) => {
     fetchData();
   }, [session]);
 
+  const value = useMemo(
+    () => ({
+      personnel,
+      roles,
+      departments,
+      loading,
+    }),
+    [personnel, roles, departments, loading] // ADD DEPENDENCIES
+  );
+
   return (
-    <PersonnelContext.Provider
-      value={{ personnel, roles, departments, loading }}
-    >
+    <PersonnelContext.Provider value={value}>
       {children}
     </PersonnelContext.Provider>
   );

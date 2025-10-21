@@ -23,6 +23,7 @@ import {
   ContentPasteSearch,
   AssignmentTurnedInOutlined,
   Straighten,
+  PeopleAlt,
 } from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
@@ -56,7 +57,7 @@ const NAVIGATION: Navigation = [
   {
     segment: "quality",
     title: "Quality",
-    icon: <CalendarMonth />,
+    icon: <Verified />,
     children: [
       {
         segment: "process_maps",
@@ -66,6 +67,28 @@ const NAVIGATION: Navigation = [
       {
         segment: "process_maps_new",
         title: "Process Maps New",
+        icon: <TableChart />,
+      },
+    ],
+  },
+  {
+    segment: "personnel",
+    title: "Personnel",
+    icon: <PeopleAlt />,
+    children: [
+      {
+        segment: "active",
+        title: "Active Personnel",
+        icon: <TableChart />,
+      },
+      {
+        segment: "former",
+        title: "Former Personnel",
+        icon: <TableChart />,
+      },
+      {
+        segment: "prospective",
+        title: "Prospective Personnel",
         icon: <TableChart />,
       },
     ],
