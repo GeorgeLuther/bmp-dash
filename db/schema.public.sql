@@ -127,6 +127,20 @@ $$;
 ALTER FUNCTION "public"."get_personnel_without_email"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."is_top_management"() RETURNS boolean
+    LANGUAGE "sql" STABLE
+    AS $$
+  select exists (
+    select 1
+    from public.v_current_user_active_roles v
+    where v.role_label = 'Top Management'
+  );
+$$;
+
+
+ALTER FUNCTION "public"."is_top_management"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."map_commit"("p_document_id" "uuid", "p_update" "bytea", "p_derived" "jsonb", "p_comment" "text" DEFAULT 'minor commit'::"text") RETURNS "void"
     LANGUAGE "plpgsql"
     AS $$
@@ -567,7 +581,7 @@ CREATE TABLE IF NOT EXISTS "public"."personnel_employment_events" (
     "reason" "text",
     "admin_statement" "text",
     "employee_statement" "text",
-    "effective_at" timestamp with time zone,
+    "effective_at" timestamp with time zone NOT NULL,
     "source" "text",
     "created_by" "uuid"
 );
@@ -623,7 +637,7 @@ CREATE TABLE IF NOT EXISTS "public"."personnel_roles_events" (
     "role_id" "uuid" NOT NULL,
     "proficiency_id" "text",
     "event_type_id" "text",
-    "effective_at" timestamp with time zone,
+    "effective_at" timestamp with time zone NOT NULL,
     "assigned_by" "uuid",
     "expires_at" timestamp with time zone,
     "review_at" timestamp with time zone,
@@ -956,6 +970,19 @@ COMMENT ON COLUMN "public"."subdepartments"."sharepoint_link" IS 'URL to relevan
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."subdepartments_roles" (
+    "role_id" "uuid" NOT NULL,
+    "subdepartment_id" "uuid" NOT NULL
+);
+
+
+ALTER TABLE "public"."subdepartments_roles" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."subdepartments_roles" IS 'associates roles with subdepartments';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."tiptap_content" (
     "version_id" "uuid" NOT NULL,
     "derived_json" "jsonb" NOT NULL,
@@ -1243,6 +1270,11 @@ ALTER TABLE ONLY "public"."subdepartments"
 
 
 
+ALTER TABLE ONLY "public"."subdepartments_roles"
+    ADD CONSTRAINT "subdepartments_roles_pkey" PRIMARY KEY ("role_id", "subdepartment_id");
+
+
+
 ALTER TABLE ONLY "public"."tiptap_content"
     ADD CONSTRAINT "tiptap_content_pkey" PRIMARY KEY ("version_id");
 
@@ -1464,6 +1496,16 @@ ALTER TABLE ONLY "public"."releases"
 
 
 
+ALTER TABLE ONLY "public"."subdepartments_roles"
+    ADD CONSTRAINT "subdepartments_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON UPDATE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."subdepartments_roles"
+    ADD CONSTRAINT "subdepartments_roles_subdepartment_id_fkey" FOREIGN KEY ("subdepartment_id") REFERENCES "public"."subdepartments"("id") ON UPDATE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."tiptap_content"
     ADD CONSTRAINT "tiptap_content_version_id_fkey" FOREIGN KEY ("version_id") REFERENCES "public"."document_versions"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
@@ -1613,10 +1655,18 @@ ALTER TABLE "public"."personnel" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."personnel_emails" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "personnel_emails_read_top_mgmt" ON "public"."personnel_emails" FOR SELECT TO "authenticated" USING ("public"."is_top_management"());
+
+
+
 ALTER TABLE "public"."personnel_employment_events" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."personnel_initial_dates_temp" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "personnel_read_top_mgmt" ON "public"."personnel" FOR SELECT TO "authenticated" USING ("public"."is_top_management"());
+
 
 
 ALTER TABLE "public"."personnel_roles_events" ENABLE ROW LEVEL SECURITY;
@@ -1656,6 +1706,9 @@ CREATE POLICY "service user has full access to releases table" ON "public"."rele
 ALTER TABLE "public"."subdepartments" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."subdepartments_roles" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."tiptap_content" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1684,6 +1737,12 @@ GRANT ALL ON FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "anon";
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."is_top_management"() TO "anon";
+GRANT ALL ON FUNCTION "public"."is_top_management"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_top_management"() TO "service_role";
 
 
 
@@ -1900,6 +1959,12 @@ GRANT ALL ON TABLE "public"."roles" TO "service_role";
 GRANT ALL ON TABLE "public"."subdepartments" TO "anon";
 GRANT ALL ON TABLE "public"."subdepartments" TO "authenticated";
 GRANT ALL ON TABLE "public"."subdepartments" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."subdepartments_roles" TO "anon";
+GRANT ALL ON TABLE "public"."subdepartments_roles" TO "authenticated";
+GRANT ALL ON TABLE "public"."subdepartments_roles" TO "service_role";
 
 
 
