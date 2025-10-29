@@ -11,7 +11,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import ReadOrEditField from "@/features/account/UserInfo/ReadOrEditField";
-import { usePersonnel } from "@/features/account/contexts/PersonnelContext";
+import { usePersonnel } from "@/features/auth/user/UserContext";
 import { supabase } from "@/supabase/client";
 
 type Props = {

@@ -9,7 +9,7 @@ import React, {
   useMemo,
 } from "react";
 import { supabase } from "../../../supabase/client";
-import { useSession } from "../../../contexts/SessionContext";
+import { useSession } from "../session/SessionContext";
 
 // --- Types ------------------------------------------------
 
