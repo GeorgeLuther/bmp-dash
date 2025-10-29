@@ -6,7 +6,7 @@ import { Outlet, Navigate, useLocation, useMatches } from "react-router";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { Account } from "@toolpad/core/Account";
 
-import { useSession } from "../features/auth/session/SessionContext";
+import { useSession } from "../../features/auth/session/SessionContext";
 
 function CustomAccount() {
   return (
