@@ -8,8 +8,8 @@ import React, {
   ReactNode,
   useMemo,
 } from "react";
-import { supabase } from "../supabase/client";
-import { useSession } from "./SessionContext";
+import { supabase } from "../../../supabase/client";
+import { useSession } from "../../../contexts/SessionContext";
 
 // --- Types ------------------------------------------------
 

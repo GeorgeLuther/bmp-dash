@@ -9,7 +9,7 @@ import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
 
 import SessionContext, { type Session } from "./contexts/SessionContext";
-import { PersonnelProvider } from "./contexts/PersonnelContext";
+import { PersonnelProvider } from "./features/account/contexts/PersonnelContext";
 
 import {
   TableChart,
