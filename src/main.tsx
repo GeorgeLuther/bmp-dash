@@ -10,7 +10,7 @@ import SignInPage from "./pages/signin";
 
 // Pages
 
-import AccountPage from "./features/account/Pages/account";
+import AccountPage from "./features/account/pages/account";
 
 import WipPage from "./pages/WorkInProgress"; // placeholder until real pages exist
 
