@@ -4,15 +4,15 @@ import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
 import { Navigate } from "react-router";
 
-import App from "./App";
-import Layout from "./layouts/dashboard";
-import SignInPage from "./pages/signin";
+import App from "./app/App";
+import Layout from "./app/layouts/dashboard";
+import SignInPage from "./features/auth/signin";
 
 // Pages
 
-import AccountPage from "./features/account/pages/account";
+import AccountPage from "./features/account";
 
-import WipPage from "./pages/WorkInProgress"; // placeholder until real pages exist
+import WipPage from "./features/shared/WorkInProgress"; // placeholder until real pages exist
 
 import SchedulingLandingPage from "./features/scheduling/pages/SchedulingLandingPage";
 import AllReleasesPage from "./features/scheduling/pages/AllReleases";
@@ -21,7 +21,7 @@ import WeldingSchedule from "./features/scheduling/pages/WeldSchedule";
 //import QualityLandingPage from "./features/quality/pages/QualityLandingPage";
 import ProcessMapStudio from "./features/quality/process-maps-old/pages/ProcessMapStudio";
 import ProcessMapsWrapper from "./features/quality/process-maps";
-import StandardPageLayout from "./layouts/StandardPageLayout";
+import StandardPageLayout from "./app/layouts/StandardPageLayout";
 
 import PersonnelPage from "./features/personnel";
 

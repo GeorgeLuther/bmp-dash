@@ -1,7 +1,7 @@
 //App.tsx
 import * as React from "react";
 
-import { supabase } from "./supabase/client";
+import { supabase } from "../supabase/client";
 (window as any).supabase = supabase;
 
 import { Outlet } from "react-router";
@@ -10,8 +10,8 @@ import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
 
 import SessionContext, {
   type Session,
-} from "./features/auth/session/SessionContext";
-import { PersonnelProvider } from "./features/auth/user/UserContext";
+} from "../features/auth/session/SessionContext";
+import { PersonnelProvider } from "../features/auth/user/UserContext";
 
 import {
   TableChart,
