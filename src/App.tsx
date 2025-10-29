@@ -8,8 +8,10 @@ import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
 
-import SessionContext, { type Session } from "./contexts/SessionContext";
-import { PersonnelProvider } from "./features/account/contexts/PersonnelContext";
+import SessionContext, {
+  type Session,
+} from "./features/auth/session/SessionContext";
+import { PersonnelProvider } from "./features/auth/user/UserContext";
 
 import {
   TableChart,
