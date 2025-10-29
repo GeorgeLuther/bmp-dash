@@ -10,8 +10,8 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
-import ReadOrEditField from "@/components/reusables/ReadOrEditFeild";
-import { usePersonnel } from "@/contexts/PersonnelContext";
+import ReadOrEditField from "@/features/account/UserInfo/ReadOrEditField";
+import { usePersonnel } from "@/features/account/contexts/PersonnelContext";
 import { supabase } from "@/supabase/client";
 
 type Props = {

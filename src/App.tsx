@@ -1,14 +1,31 @@
+//App.tsx
 import * as React from "react";
-import CalendarMonth from "@mui/icons-material/CalendarMonth";
-import TableChart from "@mui/icons-material/TableChart";
+
+import { supabase } from "./supabase/client";
+(window as any).supabase = supabase;
+
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
-import { supabase } from "./supabase/client";
-(window as any).supabase = supabase;
+
 import SessionContext, { type Session } from "./contexts/SessionContext";
-import { PersonnelProvider } from "./contexts/PersonnelContext";
-import { AccountBox } from "@mui/icons-material";
+import { PersonnelProvider } from "./features/account/contexts/PersonnelContext";
+
+import {
+  TableChart,
+  CalendarMonth,
+  AccountBox,
+  Dashboard,
+  School,
+  Event,
+  Groups,
+  Verified,
+  SchemaOutlined,
+  ContentPasteSearch,
+  AssignmentTurnedInOutlined,
+  Straighten,
+  PeopleAlt,
+} from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
   {
@@ -16,12 +33,63 @@ const NAVIGATION: Navigation = [
     title: "Main items",
   },
   {
+    segment: "scheduling",
     title: "Scheduling",
     icon: <CalendarMonth />,
     children: [
       {
+        // This new entry links to the index route at "/scheduling"
+        segment: "", // An empty segment points to the parent's path
+        title: "Overview",
+        icon: <Dashboard />,
+      },
+      {
         segment: "all_releases",
         title: "All Releases",
+        icon: <TableChart />,
+      },
+      {
+        segment: "welding_schedule",
+        title: "Welding Schedule",
+        icon: <TableChart />,
+      },
+    ],
+  },
+  {
+    segment: "quality",
+    title: "Quality",
+    icon: <Verified />,
+    children: [
+      {
+        segment: "process_maps",
+        title: "Process Maps",
+        icon: <TableChart />,
+      },
+      {
+        segment: "process_maps_new",
+        title: "Process Maps New",
+        icon: <TableChart />,
+      },
+    ],
+  },
+  {
+    segment: "personnel",
+    title: "Personnel",
+    icon: <PeopleAlt />,
+    children: [
+      {
+        segment: "active",
+        title: "Active Personnel",
+        icon: <TableChart />,
+      },
+      {
+        segment: "former",
+        title: "Former Personnel",
+        icon: <TableChart />,
+      },
+      {
+        segment: "prospective",
+        title: "Prospective Personnel",
         icon: <TableChart />,
       },
     ],

@@ -7,7 +7,7 @@ import {
   TextField,
   Button,
 } from "@mui/material";
-import { usePersonnel } from "@/contexts/PersonnelContext";
+import { usePersonnel } from "@/features/account/contexts/PersonnelContext";
 import { ReleaseTableView } from "../types/releaseTableView.types";
 
 type Props = {

@@ -50,3 +50,4 @@ supabase/.env*          # secrets if you store them here
 # System files & misc
 # ─────────────────────────────
 node_modules
+db/dumps

@@ -20,7 +20,7 @@ import { useReleases } from "@/features/scheduling/releaseTable/hooks/getAllRele
 import ReleaseDetailDrawer from "./components/ReleaseDetailDrawer";
 import ReleaseSaveViewDialog from "./components/ReleaseSaveViewDialog";
 import { useReleaseTableViews } from "./hooks/useReleaseTableViews";
-import { usePersonnel } from "@/contexts/PersonnelContext";
+import { usePersonnel } from "@/features/account/contexts/PersonnelContext";
 
 interface ReleasesTableProps {
   defaultView?: string;

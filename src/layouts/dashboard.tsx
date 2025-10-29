@@ -1,8 +1,9 @@
+// dashboard.tsx
+
 import * as React from "react";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Outlet, Navigate, useLocation } from "react-router";
+import { Outlet, Navigate, useLocation, useMatches } from "react-router";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
-import { PageContainer } from "@toolpad/core/PageContainer";
 import { Account } from "@toolpad/core/Account";
 
 import { useSession } from "../contexts/SessionContext";
@@ -21,6 +22,10 @@ export default function Layout() {
   const { session, loading } = useSession();
   const location = useLocation();
 
+  const matches = useMatches();
+  const leaf = matches[matches.length - 2];
+  console.log(leaf);
+
   if (loading) {
     return (
       <div style={{ width: "100%" }}>
@@ -36,9 +41,7 @@ export default function Layout() {
 
   return (
     <DashboardLayout slots={{ toolbarAccount: CustomAccount }}>
-      <PageContainer maxWidth={false}>
-        <Outlet />
-      </PageContainer>
+      <Outlet />
     </DashboardLayout>
   );
 }
