@@ -100,17 +100,21 @@ COMMENT ON TYPE "public"."email_type" IS 'work, personal, shared, placeholder';
 
 
 
-CREATE OR REPLACE FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "personnel_id" "uuid") RETURNS "void"
-    LANGUAGE "sql" SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-  insert into personnel_auth (user_id, personnel_id)
-  values (user_id, personnel_id)
-  on conflict do nothing;
-$$;
+CREATE TYPE "public"."employment_types" AS ENUM (
+    'current',
+    'former',
+    'on_leave',
+    'prospective',
+    'external',
+    'system'
+);
 
 
-ALTER FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "personnel_id" "uuid") OWNER TO "postgres";
+ALTER TYPE "public"."employment_types" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."employment_types" IS 'allows us to bucket people based on groups of employment statuses';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."get_personnel_without_email"() RETURNS TABLE("id" "uuid", "first_name" "text", "last_name" "text", "preferred_name" "text")
@@ -128,13 +132,39 @@ ALTER FUNCTION "public"."get_personnel_without_email"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."is_top_management"() RETURNS boolean
-    LANGUAGE "sql" STABLE
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
     AS $$
-  select exists (
-    select 1
-    from public.v_current_user_active_roles v
-    where v.role_label = 'Top Management'
-  );
+with tm as (
+  select r.id as role_id
+  from public.roles r
+  where r.label = 'Top Management'
+  limit 1
+),
+latest as (
+  select distinct on (pre.personnel_id, pre.role_id)
+         pre.personnel_id, pre.role_id, pre.involvement_id, pre.effective_at
+  from public.personnel_roles_events pre
+  where pre.personnel_id = auth.uid()
+    and pre.event_type_id in ('assigned','adjusted')
+    and pre.effective_at <= now()
+  order by pre.personnel_id, pre.role_id, pre.effective_at desc
+)
+select exists (
+  select 1
+  from latest l
+  join tm on tm.role_id = l.role_id
+  where l.involvement_id is distinct from 'blocked'
+    and not exists (
+      select 1
+      from public.personnel_roles_events u
+      where u.personnel_id = l.personnel_id
+        and u.role_id = l.role_id
+        and u.event_type_id = 'unassigned'
+        and u.effective_at > l.effective_at
+        and u.effective_at <= now()
+    )
+);
 $$;
 
 
@@ -224,8 +254,8 @@ COMMENT ON TABLE "public"."departments" IS 'High-level process groups in our org
 
 CREATE TABLE IF NOT EXISTS "public"."departments_roles" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "role_id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "department_id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL
+    "role_id" "uuid" NOT NULL,
+    "department_id" "uuid" NOT NULL
 );
 
 
@@ -330,7 +360,8 @@ CREATE TABLE IF NOT EXISTS "public"."documents_approval_events" (
     "map_version_id" "uuid",
     "file_version_id" "uuid",
     "change_description" "text" NOT NULL,
-    "approval_status" "public"."document_approval_statuses" NOT NULL
+    "approval_status" "public"."document_approval_statuses" NOT NULL,
+    CONSTRAINT "enforce_single_version_type" CHECK (("num_nonnulls"("tiptap_version_id", "map_version_id", "file_version_id") = 1))
 );
 
 
@@ -377,7 +408,8 @@ CREATE TABLE IF NOT EXISTS "public"."employment_statuses" (
     "sort_order" smallint,
     "id" "text" NOT NULL,
     "is_employed" boolean DEFAULT false NOT NULL,
-    "is_active" boolean DEFAULT false NOT NULL
+    "is_active" boolean DEFAULT false NOT NULL,
+    "bucket" "public"."employment_types" NOT NULL
 );
 
 
@@ -393,6 +425,10 @@ COMMENT ON COLUMN "public"."employment_statuses"."is_employed" IS 'identified th
 
 
 COMMENT ON COLUMN "public"."employment_statuses"."is_active" IS 'Defines which employment statuses are considered ''in play'' for scheduling, training, etc.';
+
+
+
+COMMENT ON COLUMN "public"."employment_statuses"."bucket" IS 'allows sorting into relevant tables';
 
 
 
@@ -518,8 +554,7 @@ CREATE TABLE IF NOT EXISTS "public"."personnel" (
     "last_name" "text" NOT NULL,
     "preferred_name" "text",
     "agency" "text",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "employment_status_id" "text"
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
 );
 
 
@@ -527,10 +562,6 @@ ALTER TABLE "public"."personnel" OWNER TO "postgres";
 
 
 COMMENT ON TABLE "public"."personnel" IS 'contains basic personnel info';
-
-
-
-COMMENT ON COLUMN "public"."personnel"."employment_status_id" IS 'current employment status, instead of having to search employment_events';
 
 
 
@@ -1045,18 +1076,56 @@ COMMENT ON TABLE "public"."training_events" IS 'record of training events';
 
 
 
-CREATE OR REPLACE VIEW "public"."v_current_user_active_roles" WITH ("security_invoker"='on') AS
- SELECT "r"."id" AS "role_id",
+CREATE OR REPLACE VIEW "public"."v_person_roles_current_min" WITH ("security_invoker"='on') AS
+ WITH "latest_set" AS (
+         SELECT DISTINCT ON ("pre"."personnel_id", "pre"."role_id") "pre"."personnel_id",
+            "pre"."role_id",
+            "pre"."involvement_id",
+            "pre"."proficiency_id",
+            "pre"."effective_at" AS "assigned_since"
+           FROM "public"."personnel_roles_events" "pre"
+          WHERE (("pre"."event_type_id" = ANY (ARRAY['assigned'::"text", 'adjusted'::"text"])) AND ("pre"."effective_at" <= "now"()))
+          ORDER BY "pre"."personnel_id", "pre"."role_id", "pre"."effective_at" DESC
+        ), "still_assigned" AS (
+         SELECT "l"."personnel_id",
+            "l"."role_id",
+            "l"."involvement_id",
+            "l"."proficiency_id",
+            "l"."assigned_since"
+           FROM "latest_set" "l"
+          WHERE ((EXISTS ( SELECT 1
+                   FROM "public"."personnel_roles_events" "a"
+                  WHERE (("a"."personnel_id" = "l"."personnel_id") AND ("a"."role_id" = "l"."role_id") AND ("a"."event_type_id" = 'assigned'::"text") AND ("a"."effective_at" <= "l"."assigned_since")))) AND (NOT (EXISTS ( SELECT 1
+                   FROM "public"."personnel_roles_events" "u"
+                  WHERE (("u"."personnel_id" = "l"."personnel_id") AND ("u"."role_id" = "l"."role_id") AND ("u"."event_type_id" = 'unassigned'::"text") AND ("u"."effective_at" > "l"."assigned_since") AND ("u"."effective_at" <= "now"()))))) AND ("l"."involvement_id" IS DISTINCT FROM 'blocked'::"text"))
+        )
+ SELECT "s"."personnel_id",
+    "s"."role_id",
     "r"."label" AS "role_label",
-    "pre"."involvement_id",
+    "s"."involvement_id",
     "inv"."label" AS "involvement_label",
-    "pre"."effective_at" AS "assigned_since"
-   FROM (("public"."personnel_roles_events" "pre"
-     JOIN "public"."roles" "r" ON (("r"."id" = "pre"."role_id")))
-     LEFT JOIN "public"."role_involvements" "inv" ON (("inv"."id" = "pre"."involvement_id")))
-  WHERE (("pre"."personnel_id" = "auth"."uid"()) AND ("pre"."event_type_id" = 'assigned'::"text") AND (NOT (EXISTS ( SELECT 1
-           FROM "public"."personnel_roles_events" "later"
-          WHERE (("later"."personnel_id" = "pre"."personnel_id") AND ("later"."role_id" = "pre"."role_id") AND ("later"."event_type_id" = 'unassigned'::"text") AND ("later"."effective_at" > "pre"."effective_at"))))));
+    "s"."proficiency_id",
+    "prof"."label" AS "proficiency_label",
+    "s"."assigned_since"
+   FROM ((("still_assigned" "s"
+     JOIN "public"."roles" "r" ON (("r"."id" = "s"."role_id")))
+     LEFT JOIN "public"."role_involvements" "inv" ON (("inv"."id" = "s"."involvement_id")))
+     LEFT JOIN "public"."role_proficiencies" "prof" ON (("prof"."id" = "s"."proficiency_id")));
+
+
+ALTER TABLE "public"."v_person_roles_current_min" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_current_user_active_roles" WITH ("security_invoker"='on') AS
+ SELECT "r"."role_id",
+    "r"."role_label",
+    "r"."involvement_id",
+    "r"."involvement_label",
+    "r"."proficiency_id",
+    "r"."proficiency_label",
+    "r"."assigned_since"
+   FROM "public"."v_person_roles_current_min" "r"
+  WHERE ("r"."personnel_id" = "auth"."uid"());
 
 
 ALTER TABLE "public"."v_current_user_active_roles" OWNER TO "postgres";
@@ -1073,21 +1142,102 @@ CREATE OR REPLACE VIEW "public"."v_current_user_departments" WITH ("security_inv
 ALTER TABLE "public"."v_current_user_departments" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_current_user_personnel" WITH ("security_invoker"='on') AS
- SELECT "personnel"."id",
-    "personnel"."old_id",
-    "personnel"."nfc_id",
-    "personnel"."first_name",
-    "personnel"."last_name",
-    "personnel"."preferred_name",
-    "personnel"."agency",
-    "personnel"."created_at",
-    "personnel"."employment_status_id"
-   FROM "public"."personnel"
-  WHERE ("personnel"."id" = "auth"."uid"());
+CREATE OR REPLACE VIEW "public"."v_person_employment_current_min" WITH ("security_invoker"='on') AS
+ WITH "events_now" AS (
+         SELECT "personnel_employment_events"."id",
+            "personnel_employment_events"."personnel_id",
+            "personnel_employment_events"."employment_status_id",
+            "personnel_employment_events"."created_at",
+            "personnel_employment_events"."reason",
+            "personnel_employment_events"."admin_statement",
+            "personnel_employment_events"."employee_statement",
+            "personnel_employment_events"."effective_at",
+            "personnel_employment_events"."source",
+            "personnel_employment_events"."created_by"
+           FROM "public"."personnel_employment_events"
+          WHERE ("personnel_employment_events"."effective_at" <= "now"())
+        ), "latest" AS (
+         SELECT DISTINCT ON ("e"."personnel_id") "e"."personnel_id",
+            "e"."employment_status_id",
+            "e"."effective_at"
+           FROM "events_now" "e"
+          ORDER BY "e"."personnel_id", "e"."effective_at" DESC
+        ), "first_hire" AS (
+         SELECT "events_now"."personnel_id",
+            "min"("events_now"."effective_at") AS "first_hired_at"
+           FROM "events_now"
+          WHERE ("events_now"."employment_status_id" = 'hired'::"text")
+          GROUP BY "events_now"."personnel_id"
+        ), "last_hire" AS (
+         SELECT "events_now"."personnel_id",
+            "max"("events_now"."effective_at") AS "latest_hired_at"
+           FROM "events_now"
+          WHERE ("events_now"."employment_status_id" = 'hired'::"text")
+          GROUP BY "events_now"."personnel_id"
+        ), "last_end" AS (
+         SELECT "e"."personnel_id",
+            "max"("e"."effective_at") AS "ended_at"
+           FROM ("events_now" "e"
+             JOIN "public"."employment_statuses" "s_1" ON (("s_1"."id" = "e"."employment_status_id")))
+          WHERE (("s_1"."is_employed" = false) AND ("s_1"."is_active" = false))
+          GROUP BY "e"."personnel_id"
+        )
+ SELECT "l"."personnel_id",
+    "s"."id" AS "status_id",
+    "s"."label" AS "status_label",
+    "s"."is_employed",
+    "s"."is_active",
+    "s"."bucket",
+    "fh"."first_hired_at",
+    "lh"."latest_hired_at",
+        CASE
+            WHEN (("s"."is_employed" = false) AND ("s"."is_active" = false)) THEN "le"."ended_at"
+            ELSE NULL::timestamp with time zone
+        END AS "end_at"
+   FROM (((("latest" "l"
+     JOIN "public"."employment_statuses" "s" ON (("s"."id" = "l"."employment_status_id")))
+     LEFT JOIN "first_hire" "fh" ON (("fh"."personnel_id" = "l"."personnel_id")))
+     LEFT JOIN "last_hire" "lh" ON (("lh"."personnel_id" = "l"."personnel_id")))
+     LEFT JOIN "last_end" "le" ON (("le"."personnel_id" = "l"."personnel_id")));
 
 
-ALTER TABLE "public"."v_current_user_personnel" OWNER TO "postgres";
+ALTER TABLE "public"."v_person_employment_current_min" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_current_user_context" WITH ("security_invoker"='on') AS
+ SELECT "p"."id" AS "personnel_id",
+    COALESCE("p"."preferred_name", "p"."first_name") AS "display_name",
+    "p"."first_name",
+    "p"."last_name",
+    "p"."preferred_name",
+    COALESCE(( SELECT "json_agg"("json_build_object"('id', "e"."id", 'address', "e"."address", 'email_type', "e"."email_type", 'is_primary', "e"."is_primary", 'is_verified', "e"."is_verified", 'is_disabled', "e"."is_disabled", 'send_notifications', "e"."send_notifications") ORDER BY "e"."is_primary" DESC, "e"."created_at" DESC) AS "json_agg"
+           FROM "public"."personnel_emails" "e"
+          WHERE ("e"."personnel_id" = "p"."id")), '[]'::"json") AS "emails",
+    COALESCE(( SELECT "json_build_object"('status_id', "emp"."status_id", 'status_label', "emp"."status_label", 'is_employed', "emp"."is_employed", 'is_active', "emp"."is_active") AS "json_build_object"
+           FROM "public"."v_person_employment_current_min" "emp"
+          WHERE ("emp"."personnel_id" = "p"."id")
+         LIMIT 1), '{}'::"json") AS "employment",
+    COALESCE(( SELECT "json_agg"("json_build_object"('role_id', "r"."role_id", 'role_label', "r"."role_label", 'involvement_id', "r"."involvement_id", 'involvement_label', "r"."involvement_label", 'proficiency_id', "r"."proficiency_id", 'proficiency_label', "r"."proficiency_label") ORDER BY "r"."role_label") AS "json_agg"
+           FROM "public"."v_current_user_active_roles" "r"), '[]'::"json") AS "roles",
+    COALESCE(( SELECT "json_agg"("json_build_object"('department_id', "d"."department_id", 'department_label', "d"."department_label") ORDER BY "d"."department_label") AS "json_agg"
+           FROM "public"."v_current_user_departments" "d"), '[]'::"json") AS "departments"
+   FROM "public"."personnel" "p"
+  WHERE ("p"."id" = "auth"."uid"());
+
+
+ALTER TABLE "public"."v_current_user_context" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_person_departments_current_min" WITH ("security_invoker"='on') AS
+ SELECT DISTINCT "r"."personnel_id",
+    "d"."id" AS "department_id",
+    "d"."label" AS "department_label"
+   FROM (("public"."v_person_roles_current_min" "r"
+     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "r"."role_id")))
+     JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
+
+
+ALTER TABLE "public"."v_person_departments_current_min" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."departments"
@@ -1295,6 +1445,11 @@ ALTER TABLE ONLY "public"."training_events"
 
 
 
+ALTER TABLE ONLY "public"."departments_roles"
+    ADD CONSTRAINT "uq_department_role" UNIQUE ("department_id", "role_id");
+
+
+
 ALTER TABLE ONLY "public"."personnel"
     ADD CONSTRAINT "users_pkey" PRIMARY KEY ("id");
 
@@ -1305,6 +1460,34 @@ CREATE INDEX "document_versions_document_id_created_at_idx" ON "public"."documen
 
 
 CREATE INDEX "document_versions_document_id_status_idx" ON "public"."document_versions" USING "btree" ("document_id", "status");
+
+
+
+CREATE INDEX "idx_pe_personnel_id_primary_created_desc" ON "public"."personnel_emails" USING "btree" ("personnel_id", "is_primary" DESC, "created_at" DESC);
+
+
+
+CREATE INDEX "ix_pee_personnel_effective_at_desc" ON "public"."personnel_employment_events" USING "btree" ("personnel_id", "effective_at" DESC);
+
+
+
+CREATE INDEX "ix_pee_personnel_hired_events" ON "public"."personnel_employment_events" USING "btree" ("personnel_id", "effective_at") WHERE ("employment_status_id" = 'hired'::"text");
+
+
+
+CREATE INDEX "ix_pre_person_role_assigned" ON "public"."personnel_roles_events" USING "btree" ("personnel_id", "role_id", "effective_at" DESC) WHERE ("event_type_id" = ANY (ARRAY['assigned'::"text", 'adjusted'::"text"]));
+
+
+
+CREATE INDEX "ix_pre_person_role_unassigned" ON "public"."personnel_roles_events" USING "btree" ("personnel_id", "role_id", "effective_at" DESC) WHERE ("event_type_id" = 'unassigned'::"text");
+
+
+
+CREATE INDEX "ix_roles_label" ON "public"."roles" USING "btree" ("label");
+
+
+
+CREATE INDEX "pre_event_lookup_idx" ON "public"."personnel_roles_events" USING "btree" ("personnel_id", "role_id", "event_type_id", "effective_at");
 
 
 
@@ -1432,17 +1615,12 @@ ALTER TABLE ONLY "public"."personnel_roles_events"
 
 
 ALTER TABLE ONLY "public"."personnel_emails"
-    ADD CONSTRAINT "personnel_emails_personnel_id_fkey" FOREIGN KEY ("personnel_id") REFERENCES "public"."personnel"("id") ON UPDATE CASCADE ON DELETE SET NULL;
+    ADD CONSTRAINT "personnel_emails_personnel_id_fkey" FOREIGN KEY ("personnel_id") REFERENCES "public"."personnel"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 
 ALTER TABLE ONLY "public"."personnel_employment_events"
     ADD CONSTRAINT "personnel_employment_events_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."personnel"("id") ON UPDATE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."personnel"
-    ADD CONSTRAINT "personnel_employment_status_id_fkey" FOREIGN KEY ("employment_status_id") REFERENCES "public"."employment_statuses"("id") ON UPDATE CASCADE;
 
 
 
@@ -1567,7 +1745,7 @@ CREATE POLICY "Authenticated users can view role_event_types" ON "public"."role_
 
 
 
-CREATE POLICY "Authenticated users can view their own employment events" ON "public"."personnel_employment_events" FOR SELECT TO "authenticated" USING (true);
+CREATE POLICY "Authenticated users can view their own employment events" ON "public"."personnel_employment_events" FOR SELECT TO "authenticated" USING (("personnel_id" = "auth"."uid"()));
 
 
 
@@ -1576,12 +1754,6 @@ CREATE POLICY "Authenticated users can view their own role events" ON "public"."
 
 
 CREATE POLICY "Authors have full access to their own comments" ON "public"."personnel_roles_events_comments" TO "authenticated" USING ((( SELECT "auth"."uid"() AS "uid") = "author_id")) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "author_id"));
-
-
-
-CREATE POLICY "Top Management can view raw release" ON "public"."releases" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
-   FROM "public"."v_current_user_active_roles" "vr"
-  WHERE ("vr"."role_label" = 'Top Management'::"text"))));
 
 
 
@@ -1649,6 +1821,10 @@ ALTER TABLE "public"."operation_clocking" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."operations" ENABLE ROW LEVEL SECURITY;
 
 
+CREATE POLICY "pee_read_top_mgmt" ON "public"."personnel_employment_events" FOR SELECT TO "authenticated" USING ("public"."is_top_management"());
+
+
+
 ALTER TABLE "public"."personnel" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1673,6 +1849,10 @@ ALTER TABLE "public"."personnel_roles_events" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."personnel_roles_events_comments" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "pre_read_top_mgmt" ON "public"."personnel_roles_events" FOR SELECT TO "authenticated" USING ("public"."is_top_management"());
+
 
 
 ALTER TABLE "public"."release_table_views" ENABLE ROW LEVEL SECURITY;
@@ -1722,55 +1902,41 @@ ALTER TABLE "public"."training_events" ENABLE ROW LEVEL SECURITY;
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+GRANT USAGE ON SCHEMA "public" TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "personnel_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "personnel_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."associate_personnel_to_auth"("user_id" "uuid", "personnel_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "anon";
-GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "authenticated";
 
 
 
-GRANT ALL ON FUNCTION "public"."is_top_management"() TO "anon";
+REVOKE ALL ON FUNCTION "public"."is_top_management"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_top_management"() TO "authenticated";
-GRANT ALL ON FUNCTION "public"."is_top_management"() TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."map_commit"("p_document_id" "uuid", "p_update" "bytea", "p_derived" "jsonb", "p_comment" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."map_commit"("p_document_id" "uuid", "p_update" "bytea", "p_derived" "jsonb", "p_comment" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."map_commit"("p_document_id" "uuid", "p_update" "bytea", "p_derived" "jsonb", "p_comment" "text") TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."map_load_latest"("p_document_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."map_load_latest"("p_document_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."map_load_latest"("p_document_id" "uuid") TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."departments" TO "anon";
 GRANT ALL ON TABLE "public"."departments" TO "authenticated";
 GRANT ALL ON TABLE "public"."departments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."departments_roles" TO "anon";
 GRANT ALL ON TABLE "public"."departments_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."departments_roles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."departments_subdepartments" TO "anon";
 GRANT ALL ON TABLE "public"."departments_subdepartments" TO "authenticated";
 GRANT ALL ON TABLE "public"."departments_subdepartments" TO "service_role";
 
@@ -1782,103 +1948,86 @@ GRANT ALL ON SEQUENCE "public"."departments_subdepartments_id_seq" TO "service_r
 
 
 
-GRANT ALL ON TABLE "public"."document_criticality" TO "anon";
 GRANT ALL ON TABLE "public"."document_criticality" TO "authenticated";
 GRANT ALL ON TABLE "public"."document_criticality" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."document_versions" TO "anon";
 GRANT ALL ON TABLE "public"."document_versions" TO "authenticated";
 GRANT ALL ON TABLE "public"."document_versions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."documents" TO "anon";
 GRANT ALL ON TABLE "public"."documents" TO "authenticated";
 GRANT ALL ON TABLE "public"."documents" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."documents_approval_events" TO "anon";
 GRANT ALL ON TABLE "public"."documents_approval_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."documents_approval_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."documents_roles_events" TO "anon";
 GRANT ALL ON TABLE "public"."documents_roles_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."documents_roles_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."employment_status_history_temp" TO "anon";
 GRANT ALL ON TABLE "public"."employment_status_history_temp" TO "authenticated";
 GRANT ALL ON TABLE "public"."employment_status_history_temp" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."employment_statuses" TO "anon";
 GRANT ALL ON TABLE "public"."employment_statuses" TO "authenticated";
 GRANT ALL ON TABLE "public"."employment_statuses" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."file_content" TO "anon";
 GRANT ALL ON TABLE "public"."file_content" TO "authenticated";
 GRANT ALL ON TABLE "public"."file_content" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."items" TO "anon";
 GRANT ALL ON TABLE "public"."items" TO "authenticated";
 GRANT ALL ON TABLE "public"."items" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."jobs" TO "anon";
 GRANT ALL ON TABLE "public"."jobs" TO "authenticated";
 GRANT ALL ON TABLE "public"."jobs" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."map_content" TO "anon";
 GRANT ALL ON TABLE "public"."map_content" TO "authenticated";
 GRANT ALL ON TABLE "public"."map_content" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."operation_clocking" TO "anon";
 GRANT ALL ON TABLE "public"."operation_clocking" TO "authenticated";
 GRANT ALL ON TABLE "public"."operation_clocking" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."operations" TO "anon";
 GRANT ALL ON TABLE "public"."operations" TO "authenticated";
 GRANT ALL ON TABLE "public"."operations" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."personnel" TO "anon";
 GRANT ALL ON TABLE "public"."personnel" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."personnel_emails" TO "anon";
 GRANT ALL ON TABLE "public"."personnel_emails" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel_emails" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."personnel_employment_events" TO "anon";
 GRANT ALL ON TABLE "public"."personnel_employment_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel_employment_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."personnel_initial_dates_temp" TO "anon";
 GRANT ALL ON TABLE "public"."personnel_initial_dates_temp" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel_initial_dates_temp" TO "service_role";
 
@@ -1890,13 +2039,11 @@ GRANT ALL ON SEQUENCE "public"."personnel_initial_dates_id_seq" TO "service_role
 
 
 
-GRANT ALL ON TABLE "public"."personnel_roles_events" TO "anon";
 GRANT ALL ON TABLE "public"."personnel_roles_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel_roles_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."personnel_roles_events_comments" TO "anon";
 GRANT ALL ON TABLE "public"."personnel_roles_events_comments" TO "authenticated";
 GRANT ALL ON TABLE "public"."personnel_roles_events_comments" TO "service_role";
 
@@ -1908,105 +2055,103 @@ GRANT ALL ON SEQUENCE "public"."personnel_roles_events_comments_id_seq" TO "serv
 
 
 
-GRANT ALL ON TABLE "public"."release_table_views" TO "anon";
 GRANT ALL ON TABLE "public"."release_table_views" TO "authenticated";
 GRANT ALL ON TABLE "public"."release_table_views" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."releases" TO "anon";
 GRANT ALL ON TABLE "public"."releases" TO "authenticated";
 GRANT ALL ON TABLE "public"."releases" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."resource_formats" TO "anon";
 GRANT ALL ON TABLE "public"."resource_formats" TO "authenticated";
 GRANT ALL ON TABLE "public"."resource_formats" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."role_event_types" TO "anon";
 GRANT ALL ON TABLE "public"."role_event_types" TO "authenticated";
 GRANT ALL ON TABLE "public"."role_event_types" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."role_involvements" TO "anon";
 GRANT ALL ON TABLE "public"."role_involvements" TO "authenticated";
 GRANT ALL ON TABLE "public"."role_involvements" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."role_person_lookup_temp" TO "anon";
 GRANT ALL ON TABLE "public"."role_person_lookup_temp" TO "authenticated";
 GRANT ALL ON TABLE "public"."role_person_lookup_temp" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."role_proficiencies" TO "anon";
 GRANT ALL ON TABLE "public"."role_proficiencies" TO "authenticated";
 GRANT ALL ON TABLE "public"."role_proficiencies" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."roles" TO "anon";
 GRANT ALL ON TABLE "public"."roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."roles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."subdepartments" TO "anon";
 GRANT ALL ON TABLE "public"."subdepartments" TO "authenticated";
 GRANT ALL ON TABLE "public"."subdepartments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."subdepartments_roles" TO "anon";
 GRANT ALL ON TABLE "public"."subdepartments_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."subdepartments_roles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."tiptap_content" TO "anon";
 GRANT ALL ON TABLE "public"."tiptap_content" TO "authenticated";
 GRANT ALL ON TABLE "public"."tiptap_content" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."training_event_attendees" TO "anon";
 GRANT ALL ON TABLE "public"."training_event_attendees" TO "authenticated";
 GRANT ALL ON TABLE "public"."training_event_attendees" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."training_event_enrollees" TO "anon";
 GRANT ALL ON TABLE "public"."training_event_enrollees" TO "authenticated";
 GRANT ALL ON TABLE "public"."training_event_enrollees" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."training_events" TO "anon";
 GRANT ALL ON TABLE "public"."training_events" TO "authenticated";
 GRANT ALL ON TABLE "public"."training_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "anon";
+GRANT ALL ON TABLE "public"."v_person_roles_current_min" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_person_roles_current_min" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_current_user_departments" TO "anon";
 GRANT ALL ON TABLE "public"."v_current_user_departments" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_current_user_departments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_current_user_personnel" TO "anon";
-GRANT ALL ON TABLE "public"."v_current_user_personnel" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_current_user_personnel" TO "service_role";
+GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."v_current_user_context" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_current_user_context" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "service_role";
 
 
 
@@ -2021,7 +2166,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQ
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS  TO "service_role";
 
@@ -2031,7 +2175,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES  TO "service_role";
 
