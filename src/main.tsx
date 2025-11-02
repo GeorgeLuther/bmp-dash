@@ -12,7 +12,7 @@ import SignInPage from "./features/auth/signin";
 
 import AccountPage from "./features/account";
 
-import WipPage from "./features/shared/WorkInProgress"; // placeholder until real pages exist
+import WipPage from "./shared/WorkInProgress"; // placeholder until real pages exist
 
 import SchedulingLandingPage from "./features/scheduling/pages/SchedulingLandingPage";
 import AllReleasesPage from "./features/scheduling/pages/AllReleases";
@@ -24,6 +24,8 @@ import ProcessMapsWrapper from "./features/quality/process-maps";
 import StandardPageLayout from "./app/layouts/StandardPageLayout";
 
 import PersonnelPage from "./features/personnel";
+
+import { SessionProvider } from "./features/auth/session/SessionContext";
 
 // IMPORTANT: child paths below MUST match the NAVIGATION "segment" values in App.tsx
 const router = createBrowserRouter([
@@ -110,6 +112,8 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <RouterProvider router={router} />
+    <SessionProvider>
+      <RouterProvider router={router} />
+    </SessionProvider>
   </React.StrictMode>
 );
