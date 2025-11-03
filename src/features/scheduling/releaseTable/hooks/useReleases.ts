@@ -1,4 +1,4 @@
-// src/hooks/useReleases.ts
+//src/features/scheduling/releaseTable/hooks/useReleases.ts
 import { useState, useEffect } from "react";
 import { fetchAllReleases } from "../services/releasesService";
 

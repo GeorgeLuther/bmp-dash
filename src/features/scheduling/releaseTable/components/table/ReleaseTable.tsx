@@ -1,112 +1,210 @@
-import React, { useMemo, useState } from "react";
+// src/features/scheduling/releaseTable/components/table/ReleasesTable.tsx
+import { useMemo, useState, useEffect, useRef } from "react";
 import {
   MaterialReactTable,
-  MRT_ToolbarInternalButtons,
+  useMaterialReactTable,
   type MRT_Row,
 } from "material-react-table";
-
 import { Box, IconButton, Menu, MenuItem, Tooltip } from "@mui/material";
-import ViewListIcon from "@mui/icons-material/ViewList";
+import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import { Edit, Delete } from "@mui/icons-material";
+import ViewListIcon from "@mui/icons-material/ViewList";
 
-import ReleaseDrawer from "../ReleaseDetailDrawer";
 import { Release } from "../../types/Release.types";
 import { releaseColumns } from "./ReleaseTable.columns";
-import { useReleases } from "@/features/scheduling/releaseTable/hooks/getAllReleases";
+import { useReleases } from "../../hooks/useReleases";
+import ReleaseDetailDrawer from "../ReleaseDetailDrawer";
+import ReleaseSaveViewDialog from "../ReleaseSaveViewDialog";
+import useReleaseTableViews from "../../hooks/useReleaseTableViews";
+import { useSession } from "@/features/auth/session/useSession";
 
-const ReleasesTable = () => {
-  const { data: releaseData, isLoading } = useReleases();
+import {
+  type ViewState,
+  serializeTableState,
+} from "../../types/releaseTableView.types";
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedRowData, setSelectedRowData] = useState<Release | null>(null);
+interface ReleasesTableProps {
+  defaultView?: string;
+}
 
+const ReleasesTable = ({ defaultView }: ReleasesTableProps) => {
+  const { data: releaseData = [], isLoading: isReleasesLoading } =
+    useReleases();
+  const [localData, setLocalData] = useState<Release[]>([]);
+  const columns = useMemo(() => releaseColumns, []);
+
+  const { status: authStatus, session } = useSession();
+  const userId = session?.userId ?? null;
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState<Release | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
-  const [savedViews, setSavedViews] = useState<
-    {
-      id: string;
-      name: string;
-      filters?: any;
-      sorting?: any;
-      column_visibil?: any;
-      column_order?: any;
-      grouping?: string[];
-    }[]
-  >([]);
+  const {
+    views: savedViews = [],
+    loading: isViewsLoading,
+    saveView,
+  } = useReleaseTableViews(userId);
 
-  const columns = useMemo(() => releaseColumns, []);
+  const viewApplied = useRef(false);
+
+  // Controlled MRT state
+  const [tableState, setTableState] = useState<ViewState>({
+    columnFilters: [],
+    sorting: [],
+    columnVisibility: {},
+    columnOrder: [],
+    grouping: [],
+  });
+
+  useEffect(() => {
+    setLocalData(releaseData);
+    if (!defaultView || !savedViews.length || viewApplied.current) return;
+    const v = savedViews.find(
+      (x) => x.id === defaultView || x.name === defaultView
+    );
+    if (v?.view_state) {
+      setTableState((prev) => ({ ...prev, ...v.view_state }));
+      viewApplied.current = true;
+    }
+  }, [defaultView, savedViews, releaseData]);
+
+  const table = useMaterialReactTable<Release>({
+    columns,
+    data: localData,
+    enableRowActions: true,
+    enableGrouping: true,
+    enableColumnOrdering: true,
+    positionActionsColumn: "first",
+
+    // Controlled pattern per MRT docs
+    state: {
+      ...tableState,
+      isLoading:
+        isReleasesLoading || isViewsLoading || authStatus === "loading",
+    },
+    onColumnFiltersChange: (updater) =>
+      setTableState((prev) => ({
+        ...prev,
+        columnFilters:
+          typeof updater === "function"
+            ? updater(prev.columnFilters ?? [])
+            : updater,
+      })),
+    onSortingChange: (updater) =>
+      setTableState((prev) => ({
+        ...prev,
+        sorting:
+          typeof updater === "function" ? updater(prev.sorting ?? []) : updater,
+      })),
+    onColumnVisibilityChange: (updater) =>
+      setTableState((prev) => ({
+        ...prev,
+        columnVisibility:
+          typeof updater === "function"
+            ? updater(prev.columnVisibility ?? {})
+            : updater,
+      })),
+    onColumnOrderChange: (updater) =>
+      setTableState((prev) => ({
+        ...prev,
+        columnOrder:
+          typeof updater === "function"
+            ? updater(prev.columnOrder ?? [])
+            : updater,
+      })),
+    onGroupingChange: (updater) =>
+      setTableState((prev) => ({
+        ...prev,
+        grouping:
+          typeof updater === "function"
+            ? updater(prev.grouping ?? [])
+            : updater,
+      })),
+
+    autoResetPageIndex: false,
+    enableRowOrdering: true,
+    enableSorting: true,
+    muiRowDragHandleProps: ({ table }) => ({
+      onDragEnd: () => {
+        const { draggingRow, hoveredRow } = table.getState();
+        if (hoveredRow && draggingRow) {
+          localData.splice(
+            (hoveredRow as MRT_Row<Release>).index,
+            0,
+            localData.splice(draggingRow.index, 1)[0]
+          );
+          setLocalData([...localData]);
+        }
+      },
+    }),
+    renderRowActions: ({ row }) => (
+      <IconButton
+        onClick={() => {
+          setSelectedRow(row.original);
+          setDrawerOpen(true);
+        }}
+      >
+        <EditIcon />
+      </IconButton>
+    ),
+    renderTopToolbarCustomActions: () => (
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+        <Tooltip title="View Presets">
+          <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+            <ViewListIcon />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Save Current View">
+          <IconButton onClick={() => setSaveDialogOpen(true)}>
+            <SaveIcon />
+          </IconButton>
+        </Tooltip>
+
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={() => setAnchorEl(null)}
+        >
+          {isViewsLoading ? (
+            <MenuItem disabled>Loading…</MenuItem>
+          ) : savedViews.length === 0 ? (
+            <MenuItem disabled>No saved views</MenuItem>
+          ) : (
+            savedViews.map((v) => (
+              <MenuItem
+                key={v.id}
+                onClick={() => {
+                  if (v.view_state)
+                    setTableState((prev) => ({ ...prev, ...v.view_state }));
+                  setAnchorEl(null);
+                }}
+              >
+                {v.name}
+              </MenuItem>
+            ))
+          )}
+        </Menu>
+
+        <ReleaseSaveViewDialog
+          open={saveDialogOpen}
+          onClose={() => setSaveDialogOpen(false)}
+          // Save the controlled slice, not table.getState()
+          tableState={serializeTableState(tableState)}
+          onSave={saveView}
+        />
+      </Box>
+    ),
+  });
 
   return (
     <>
-      <MaterialReactTable
-        columns={columns}
-        data={releaseData ?? []}
-        state={{ isLoading }}
-        enableRowActions
-        enableGrouping
-        enableColumnOrdering
-        positionActionsColumn="last"
-        renderRowActions={({ row }) => (
-          <>
-            <IconButton onClick={() => setSelectedRowData(row.original)}>
-              <Edit />
-            </IconButton>
-            <IconButton onClick={() => console.log("TODO delete", row)}>
-              <Delete />
-            </IconButton>
-          </>
-        )}
-        renderTopToolbarCustomActions={({ table }) => (
-          <Box sx={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <Tooltip title="View Presets">
-              <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
-                <ViewListIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Save Current View">
-              <IconButton onClick={() => setSaveDialogOpen(true)}>
-                <SaveIcon />
-              </IconButton>
-            </Tooltip>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={() => setAnchorEl(null)}
-            >
-              {savedViews.length === 0 && (
-                <MenuItem disabled>No saved views</MenuItem>
-              )}
-              {savedViews.map((view) => (
-                <MenuItem
-                  key={view.id}
-                  onClick={() => {
-                    try {
-                      if (view.filters) table.setColumnFilters(view.filters);
-                      if (view.sorting) table.setSorting(view.sorting);
-                      if (view.column_visibil)
-                        table.setColumnVisibility(view.column_visibil);
-                      if (view.column_order)
-                        table.setColumnOrder(view.column_order);
-                    } catch (err) {
-                      console.error("Failed to apply view", err);
-                    }
-                    setAnchorEl(null);
-                  }}
-                >
-                  {view.name}
-                </MenuItem>
-              ))}
-            </Menu>
-          </Box>
-        )}
-      />
-
-      <ReleaseDrawer
-        open={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        rowData={selectedRowData}
+      <MaterialReactTable table={table} />
+      <ReleaseDetailDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        rowData={selectedRow}
       />
     </>
   );

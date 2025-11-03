@@ -1,4 +1,5 @@
-import ReleasesTable from "../releaseTable/ReleasesTable";
+//src/features/scheduling/pages/AllReleases.tsx
+import ReleasesTable from "@/features/scheduling/releaseTable/components/table/ReleaseTable";
 import Box from "@mui/material/Box";
 //import Example from "../components/Example";
 

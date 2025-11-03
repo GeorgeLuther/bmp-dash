@@ -1,3 +1,4 @@
+//src/features/scheduling/releaseTable/types/Release.types.ts
 // Define the Release interface
 export interface Release {
   ms_row_index: number;

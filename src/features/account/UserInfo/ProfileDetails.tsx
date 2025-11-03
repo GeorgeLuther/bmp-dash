@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Typography,
-  TextField,
   Chip,
   Stack,
   Button,
@@ -11,52 +10,45 @@ import {
   ListItemText,
 } from "@mui/material";
 import ReadOrEditField from "@/features/account/UserInfo/ReadOrEditField";
-import { usePersonnel } from "@/features/auth/user/UserContext";
+import { useUser } from "@/features/auth/user/UserContext";
 import { supabase } from "@/supabase/client";
 
-type Props = {
-  editable: boolean;
-};
+type Props = { editable: boolean };
 
 export default function ProfileDetails({ editable }: Props) {
-  const {
-    personnel,
-    roles: userRoles,
-    departments: userDepartments,
-  } = usePersonnel();
+  const { user, status } = useUser();
+
+  // derive arrays safely from user context
+  const userEmails = useMemo(
+    () => (user?.emails ?? []).map((e) => e.address),
+    [user?.emails]
+  );
+  const userRoles = user?.roles ?? [];
+  const userDepartments = user?.departments ?? [];
 
   const [form, setForm] = useState({
     first_name: "",
     preferred_name: "",
     last_name: "",
   });
-  const [emails, setEmails] = useState<string[]>([]);
-  const skills = ["TIG Welding", "Brake Setup", "Quality Audit"]; // placeholder
 
+  // prime form when user loads
   useEffect(() => {
-    if (!personnel) return;
-
+    if (!user) return;
     setForm({
-      first_name: personnel.first_name ?? "",
-      preferred_name: personnel.preferred_name ?? "",
-      last_name: personnel.last_name ?? "",
+      first_name: user.first_name ?? "",
+      preferred_name: user.preferred_name ?? "",
+      last_name: user.last_name ?? "",
     });
-
-    supabase
-      .from("personnel_emails")
-      .select("address")
-      .eq("personnel_id", personnel.id)
-      .then(({ data }) => {
-        if (data) setEmails(data.map((e) => e.address));
-      });
-  }, [personnel]);
+  }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
-    if (!personnel) return;
+    if (!user?.personnel_id) return;
     const { error } = await supabase
       .from("personnel")
       .update({
@@ -64,7 +56,7 @@ export default function ProfileDetails({ editable }: Props) {
         last_name: form.last_name,
         preferred_name: form.preferred_name,
       })
-      .eq("id", personnel.id);
+      .eq("id", user.personnel_id);
 
     if (error) {
       console.error("Failed to update:", error);
@@ -74,10 +66,18 @@ export default function ProfileDetails({ editable }: Props) {
     }
   };
 
+  // simple gates
+  if (status === "loading") {
+    return <Typography variant="body2">Loading profile…</Typography>;
+  }
+  if (status === "forbidden") {
+    return <Typography variant="body2">No profile available.</Typography>;
+  }
+
   return (
     <Box>
       <Stack spacing={2}>
-        {/* Name Fields */}
+        {/* Name fields */}
         <Stack direction="row" spacing={2}>
           <ReadOrEditField
             label="First Name"
@@ -108,7 +108,7 @@ export default function ProfileDetails({ editable }: Props) {
             Email Addresses
           </Typography>
           <List dense disablePadding>
-            {emails.map((email) => (
+            {userEmails.map((email) => (
               <ListItem key={email} disablePadding>
                 <ListItemText primary={email} />
               </ListItem>
@@ -136,17 +136,21 @@ export default function ProfileDetails({ editable }: Props) {
           <Typography variant="subtitle1">Departments</Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" my={1}>
             {userDepartments.map((d) => (
-              <Chip key={d.department_id} label={d.department_label} />
+              <Chip
+                key={d.department_id}
+                label={d.department_label}
+                size="small"
+              />
             ))}
           </Stack>
         </Box>
 
-        {/* Skills */}
+        {/* Skills placeholder */}
         <Box>
           <Typography variant="subtitle1">Skills</Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" my={1}>
-            {skills.map((skill) => (
-              <Chip key={skill} label={skill} variant="outlined" />
+            {["TIG Welding", "Brake Setup", "Quality Audit"].map((s) => (
+              <Chip key={s} label={s} variant="outlined" size="small" />
             ))}
           </Stack>
         </Box>

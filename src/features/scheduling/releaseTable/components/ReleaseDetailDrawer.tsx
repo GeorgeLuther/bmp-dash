@@ -1,3 +1,4 @@
+//src/features/scheduling/releaseTable/components/ReleaseDetailDrawer.tsx
 import React, { useState } from "react";
 import {
   Drawer,
