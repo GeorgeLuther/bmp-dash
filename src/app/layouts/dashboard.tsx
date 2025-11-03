@@ -1,32 +1,31 @@
-// dashboard.tsx
-
-import * as React from "react";
+// src/app/layouts/dashboard.tsx
 import LinearProgress from "@mui/material/LinearProgress";
 import { Outlet, Navigate, useLocation, useMatches } from "react-router";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { Account } from "@toolpad/core/Account";
 
-import { useSession } from "../../features/auth/session/SessionContext";
+import { useSession } from "@/features/auth/session/useSession";
+import { safeRedirect } from "@/shared/safeRedirect";
 
 function CustomAccount() {
   return (
     <Account
       slotProps={{
-        preview: { slotProps: { avatarIconButton: { sx: { border: "0" } } } },
+        preview: { slotProps: { avatarIconButton: { sx: { border: 0 } } } },
       }}
     />
   );
 }
 
 export default function Layout() {
-  const { session, loading } = useSession();
+  const { status, session } = useSession();
   const location = useLocation();
 
   const matches = useMatches();
   const leaf = matches[matches.length - 2];
-  console.log(leaf);
+  if (leaf) console.log(leaf);
 
-  if (loading) {
+  if (status === "loading") {
     return (
       <div style={{ width: "100%" }}>
         <LinearProgress />
@@ -35,8 +34,9 @@ export default function Layout() {
   }
 
   if (!session) {
-    const redirectTo = `/sign-in?callbackUrl=${encodeURIComponent(location.pathname)}`;
-    return <Navigate to={redirectTo} replace />;
+    const raw = location.pathname + location.search + location.hash;
+    const cb = encodeURIComponent(safeRedirect(raw, "/"));
+    return <Navigate to={`/sign-in?callbackUrl=${cb}`} replace />;
   }
 
   return (

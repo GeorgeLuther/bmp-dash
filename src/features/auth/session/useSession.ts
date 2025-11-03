@@ -1,3 +1,4 @@
+// src/features/auth/session/useSession.ts
 import { useContext } from 'react';
 import { SessionContext } from './SessionContext';
 

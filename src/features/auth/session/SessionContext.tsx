@@ -1,3 +1,4 @@
+// src/features/auth/session/SessionContext.tsx
 import {
   createContext,
   useCallback,
@@ -7,6 +8,7 @@ import {
 } from "react";
 import type { SessionContextValue, SessionInfo, SessionStatus } from "./types";
 import { supabase } from "@/supabase/client";
+import type { Session as SupaSession } from "@supabase/supabase-js";
 
 export const SessionContext = createContext<SessionContextValue | undefined>(
   undefined
@@ -17,26 +19,40 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const toSessionInfo = (s: SupaSession | null): SessionInfo | null => {
+    if (!s?.user?.id) return null;
+    const meta = (s.user.user_metadata as any) ?? {};
+    return {
+      userId: s.user.id,
+      expiresAt: typeof s.expires_at === "number" ? s.expires_at : null,
+      name: meta.name || "",
+      email: typeof s.user.email === "string" ? s.user.email : "",
+      image: meta.avatar_url || "",
+    };
+  };
+
   const readSession = useCallback(async () => {
     try {
       const { data, error: err } = await supabase.auth.getSession();
       if (err) throw err;
-      const s = data?.session ?? null;
-      if (!s?.user?.id) {
+
+      const next = toSessionInfo(data?.session ?? null);
+      if (!next) {
         setSession(null);
         setStatus("unauthenticated");
         return;
       }
-      setSession({
-        userId: s.user.id,
-        expiresAt: typeof s.expires_at === "number" ? s.expires_at : null,
-      });
+      setSession(next);
       setStatus("ready");
       setError(null);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "message" in (e as any)
+          ? String((e as any).message)
+          : "Session read failed";
       setSession(null);
       setStatus("unauthenticated");
-      setError(e?.message ?? "Session read failed");
+      setError(msg);
     }
   }, []);
 
@@ -45,12 +61,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, [readSession]);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (s?.user?.id) {
-        setSession({
-          userId: s.user.id,
-          expiresAt: typeof s.expires_at === "number" ? s.expires_at : null,
-        });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, s) => {
+      const next = toSessionInfo(s);
+      if (next) {
+        setSession(next);
         setStatus("ready");
         setError(null);
       } else {
@@ -58,9 +74,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setStatus("unauthenticated");
       }
     });
-    return () => {
-      sub.subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const refresh = useCallback(async () => {

@@ -1,8 +1,7 @@
-//main.tsx
+// src/main.tsx
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router";
-import { Navigate } from "react-router";
 
 import App from "./app/App";
 import Layout from "./app/layouts/dashboard";

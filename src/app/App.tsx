@@ -1,55 +1,29 @@
-//App.tsx
+// src/app/App.tsx
 import * as React from "react";
-
-import { supabase } from "../supabase/client";
-(window as any).supabase = supabase;
-
 import { Outlet } from "react-router";
 import { ReactRouterAppProvider } from "@toolpad/core/react-router";
 import type { Navigation, Authentication } from "@toolpad/core/AppProvider";
-
-import SessionContext, {
-  type Session,
-} from "../features/auth/session/SessionContext";
-import { PersonnelProvider } from "../features/auth/user/UserContext";
+import { supabase } from "@/supabase/client";
+import { useSession } from "@/features/auth/session/useSession";
 
 import {
   TableChart,
   CalendarMonth,
   AccountBox,
   Dashboard,
-  School,
-  Event,
-  Groups,
   Verified,
-  SchemaOutlined,
-  ContentPasteSearch,
-  AssignmentTurnedInOutlined,
-  Straighten,
   PeopleAlt,
 } from "@mui/icons-material";
 
 const NAVIGATION: Navigation = [
-  {
-    kind: "header",
-    title: "Main items",
-  },
+  { kind: "header", title: "Main items" },
   {
     segment: "scheduling",
     title: "Scheduling",
     icon: <CalendarMonth />,
     children: [
-      {
-        // This new entry links to the index route at "/scheduling"
-        segment: "", // An empty segment points to the parent's path
-        title: "Overview",
-        icon: <Dashboard />,
-      },
-      {
-        segment: "all_releases",
-        title: "All Releases",
-        icon: <TableChart />,
-      },
+      { segment: "", title: "Overview", icon: <Dashboard /> },
+      { segment: "all_releases", title: "All Releases", icon: <TableChart /> },
       {
         segment: "welding_schedule",
         title: "Welding Schedule",
@@ -62,11 +36,7 @@ const NAVIGATION: Navigation = [
     title: "Quality",
     icon: <Verified />,
     children: [
-      {
-        segment: "process_maps",
-        title: "Process Maps",
-        icon: <TableChart />,
-      },
+      { segment: "process_maps", title: "Process Maps", icon: <TableChart /> },
       {
         segment: "process_maps_new",
         title: "Process Maps New",
@@ -79,16 +49,8 @@ const NAVIGATION: Navigation = [
     title: "Personnel",
     icon: <PeopleAlt />,
     children: [
-      {
-        segment: "active",
-        title: "Active Personnel",
-        icon: <TableChart />,
-      },
-      {
-        segment: "former",
-        title: "Former Personnel",
-        icon: <TableChart />,
-      },
+      { segment: "active", title: "Active Personnel", icon: <TableChart /> },
+      { segment: "former", title: "Former Personnel", icon: <TableChart /> },
       {
         segment: "prospective",
         title: "Prospective Personnel",
@@ -96,86 +58,44 @@ const NAVIGATION: Navigation = [
       },
     ],
   },
-  {
-    segment: "account",
-    title: "Account",
-    icon: <AccountBox />,
-  },
+  { segment: "account", title: "Account", icon: <AccountBox /> },
 ];
 
-const BRANDING = {
-  title: "bmp-dash",
-};
+const BRANDING = { title: "bmp-dash" };
 
 const AUTHENTICATION: Authentication = {
-  signIn: () => {},
+  signIn: () => {}, // handled by /sign-in route
   signOut: async () => {
     await supabase.auth.signOut();
   },
 };
 
 export default function App() {
-  const [session, setSession] = React.useState<Session | null>(null);
-  const [loading, setLoading] = React.useState(true);
+  const { session } = useSession();
 
-  const sessionContextValue = React.useMemo(
-    () => ({
-      session,
-      setSession,
-      loading,
-    }),
-    [session, loading]
+  //for toolpad header
+  const toolpadSession = React.useMemo(
+    () =>
+      session
+        ? {
+            user: {
+              name: session.name || "",
+              email: session.email || "",
+              image: session.image || "",
+            },
+          }
+        : null,
+    [session?.name, session?.email, session?.image]
   );
-
-  React.useEffect(() => {
-    // 1) fetch initial session
-    supabase.auth.getSession().then(({ data }) => {
-      const s = data.session;
-      if (s) {
-        setSession({
-          user: {
-            name: (s.user.user_metadata as any).name || "",
-            email: s.user.email || "",
-            image: (s.user.user_metadata as any).avatar_url || "",
-          },
-        });
-      }
-      setLoading(false);
-    });
-
-    // 2) subscribe to changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
-      if (s) {
-        setSession({
-          user: {
-            name: (s.user.user_metadata as any).name || "",
-            email: s.user.email || "",
-            image: (s.user.user_metadata as any).avatar_url || "",
-          },
-        });
-      } else {
-        setSession(null);
-      }
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   return (
     <ReactRouterAppProvider
       navigation={NAVIGATION}
       branding={BRANDING}
-      session={session}
+      session={toolpadSession}
       authentication={AUTHENTICATION}
     >
-      <SessionContext.Provider value={sessionContextValue}>
-        <PersonnelProvider>
-          <Outlet />
-        </PersonnelProvider>
-      </SessionContext.Provider>
+      <Outlet />
     </ReactRouterAppProvider>
   );
 }
