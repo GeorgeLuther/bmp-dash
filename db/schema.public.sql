@@ -1116,30 +1116,16 @@ CREATE OR REPLACE VIEW "public"."v_person_roles_current_min" WITH ("security_inv
 ALTER TABLE "public"."v_person_roles_current_min" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_current_user_active_roles" WITH ("security_invoker"='on') AS
- SELECT "r"."role_id",
-    "r"."role_label",
-    "r"."involvement_id",
-    "r"."involvement_label",
-    "r"."proficiency_id",
-    "r"."proficiency_label",
-    "r"."assigned_since"
-   FROM "public"."v_person_roles_current_min" "r"
-  WHERE ("r"."personnel_id" = "auth"."uid"());
-
-
-ALTER TABLE "public"."v_current_user_active_roles" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_current_user_departments" WITH ("security_invoker"='on') AS
- SELECT DISTINCT "d"."id" AS "department_id",
+CREATE OR REPLACE VIEW "public"."v_person_departments_current_min" WITH ("security_invoker"='on') AS
+ SELECT DISTINCT "r"."personnel_id",
+    "d"."id" AS "department_id",
     "d"."label" AS "department_label"
-   FROM (("public"."v_current_user_active_roles" "cur"
-     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "cur"."role_id")))
+   FROM (("public"."v_person_roles_current_min" "r"
+     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "r"."role_id")))
      JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
 
 
-ALTER TABLE "public"."v_current_user_departments" OWNER TO "postgres";
+ALTER TABLE "public"."v_person_departments_current_min" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."v_person_employment_current_min" WITH ("security_invoker"='on') AS
@@ -1204,6 +1190,69 @@ CREATE OR REPLACE VIEW "public"."v_person_employment_current_min" WITH ("securit
 ALTER TABLE "public"."v_person_employment_current_min" OWNER TO "postgres";
 
 
+CREATE OR REPLACE VIEW "public"."v_all_personnel" WITH ("security_invoker"='on') AS
+ SELECT "p"."id",
+    "p"."first_name",
+    "p"."last_name",
+    "p"."preferred_name",
+    COALESCE("p"."preferred_name", "p"."first_name") AS "display_name",
+    "emp"."status_id",
+    "emp"."status_label",
+    "emp"."is_employed",
+    "emp"."is_active",
+    "emp"."first_hired_at",
+    "emp"."latest_hired_at",
+    "emp"."end_at",
+    "best_email"."address" AS "primary_email_address",
+    "best_email"."email_type" AS "primary_email_type",
+    COALESCE("roles"."roles", '[]'::"jsonb") AS "roles",
+    COALESCE("depts"."departments", '[]'::"jsonb") AS "departments",
+    "p"."created_at" AS "record_created_at"
+   FROM (((("public"."personnel" "p"
+     LEFT JOIN "public"."v_person_employment_current_min" "emp" ON (("emp"."personnel_id" = "p"."id")))
+     LEFT JOIN LATERAL ( SELECT "pe"."address",
+            "pe"."email_type"
+           FROM "public"."personnel_emails" "pe"
+          WHERE ("pe"."personnel_id" = "p"."id")
+          ORDER BY "pe"."is_primary" DESC, "pe"."created_at" DESC
+         LIMIT 1) "best_email" ON (true))
+     LEFT JOIN LATERAL ( SELECT "jsonb_agg"("jsonb_build_object"('role_id', "r"."role_id", 'role_label', "r"."role_label", 'involvement_label', "r"."involvement_label", 'proficiency_label', "r"."proficiency_label", 'assigned_since', "r"."assigned_since") ORDER BY "r"."role_label") AS "roles"
+           FROM "public"."v_person_roles_current_min" "r"
+          WHERE ("r"."personnel_id" = "p"."id")) "roles" ON (true))
+     LEFT JOIN LATERAL ( SELECT "jsonb_agg"("jsonb_build_object"('department_id', "d"."department_id", 'department_label', "d"."department_label") ORDER BY "d"."department_label") AS "departments"
+           FROM "public"."v_person_departments_current_min" "d"
+          WHERE ("d"."personnel_id" = "p"."id")) "depts" ON (true));
+
+
+ALTER TABLE "public"."v_all_personnel" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_current_user_active_roles" WITH ("security_invoker"='on') AS
+ SELECT "r"."role_id",
+    "r"."role_label",
+    "r"."involvement_id",
+    "r"."involvement_label",
+    "r"."proficiency_id",
+    "r"."proficiency_label",
+    "r"."assigned_since"
+   FROM "public"."v_person_roles_current_min" "r"
+  WHERE ("r"."personnel_id" = "auth"."uid"());
+
+
+ALTER TABLE "public"."v_current_user_active_roles" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_current_user_departments" WITH ("security_invoker"='on') AS
+ SELECT DISTINCT "d"."id" AS "department_id",
+    "d"."label" AS "department_label"
+   FROM (("public"."v_current_user_active_roles" "cur"
+     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "cur"."role_id")))
+     JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
+
+
+ALTER TABLE "public"."v_current_user_departments" OWNER TO "postgres";
+
+
 CREATE OR REPLACE VIEW "public"."v_current_user_context" WITH ("security_invoker"='on') AS
  SELECT "p"."id" AS "personnel_id",
     COALESCE("p"."preferred_name", "p"."first_name") AS "display_name",
@@ -1226,18 +1275,6 @@ CREATE OR REPLACE VIEW "public"."v_current_user_context" WITH ("security_invoker
 
 
 ALTER TABLE "public"."v_current_user_context" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."v_person_departments_current_min" WITH ("security_invoker"='on') AS
- SELECT DISTINCT "r"."personnel_id",
-    "d"."id" AS "department_id",
-    "d"."label" AS "department_label"
-   FROM (("public"."v_person_roles_current_min" "r"
-     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "r"."role_id")))
-     JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
-
-
-ALTER TABLE "public"."v_person_departments_current_min" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."departments"
@@ -1467,11 +1504,19 @@ CREATE INDEX "idx_pe_personnel_id_primary_created_desc" ON "public"."personnel_e
 
 
 
+CREATE INDEX "idx_personnel_emails_best" ON "public"."personnel_emails" USING "btree" ("personnel_id", "is_primary", "created_at" DESC);
+
+
+
 CREATE INDEX "ix_pee_personnel_effective_at_desc" ON "public"."personnel_employment_events" USING "btree" ("personnel_id", "effective_at" DESC);
 
 
 
 CREATE INDEX "ix_pee_personnel_hired_events" ON "public"."personnel_employment_events" USING "btree" ("personnel_id", "effective_at") WHERE ("employment_status_id" = 'hired'::"text");
+
+
+
+CREATE INDEX "ix_pee_personnel_status_effective_at" ON "public"."personnel_employment_events" USING "btree" ("personnel_id", "employment_status_id", "effective_at" DESC);
 
 
 
@@ -2130,6 +2175,21 @@ GRANT ALL ON TABLE "public"."v_person_roles_current_min" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."v_all_personnel" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_all_personnel" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "service_role";
 
@@ -2140,18 +2200,8 @@ GRANT ALL ON TABLE "public"."v_current_user_departments" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_person_employment_current_min" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."v_current_user_context" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_current_user_context" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_person_departments_current_min" TO "service_role";
 
 
 

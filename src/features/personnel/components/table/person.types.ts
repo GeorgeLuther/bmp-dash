@@ -1,25 +1,35 @@
-// src/features/personnel/table/person.types.ts
-export type Person = {
+// src/features/personnel/components/table/person.types.ts89988u 
+export interface Person {
   id: string;
 
   // names
-  first_name?: string | null;
-  last_name?: string | null;
-  preferred_name?: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  preferred_name: string | null;
+  display_name: string; // computed in view
 
-  // status/context
-  employment_status?: string | null;
-  agency?: string | null;
+  // employment (current)
+  status_label: string | null;
+  is_employed: boolean | null;
+  is_active: boolean | null;
+  first_hired_at: string | null;
+  latest_hired_at: string | null;
+  end_at: string | null;
 
-  // org
-  departments?: string[] | null;      // plural
-  subdepartments?: string[] | null;   // optional
+  // email
+  primary_email_address: string | null;
+  primary_email_type: string | null;
 
-  // contact
-  email_primary?: string | null;
+  // org aggregates
+  roles: {
+    role_id: string;
+    role_label: string;
+    involvement_label: string | null;
+    proficiency_label: string | null;
+    assigned_since: string | null;
+  }[];
+  departments: { department_id: string; department_label: string }[];
 
-  // dates (ISO strings)
-  started_at?: string | null;
-  hired_at?: string | null;
-  created_at?: string | null;
-};
+  // meta
+  record_created_at: string | null;
+}
