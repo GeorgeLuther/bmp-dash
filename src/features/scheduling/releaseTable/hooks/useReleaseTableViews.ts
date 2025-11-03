@@ -1,3 +1,4 @@
+// src/features/scheduling/releaseTable/hooks/useReleaseTableViews.ts
 import { useEffect, useState } from "react";
 import { ReleaseTableView } from "../types/releaseTableView.types";
 import {
@@ -9,25 +10,20 @@ export function useReleaseTableViews(userId: string | null) {
   const [views, setViews] = useState<ReleaseTableView[]>([]);
   const [loading, setLoading] = useState(false);
 
-  //get
   useEffect(() => {
     if (!userId) return;
     setLoading(true);
-
     getAllReleaseTableViews(userId)
       .then((data) => setViews(data ?? []))
       .finally(() => setLoading(false));
   }, [userId]);
-  
-  //create
+
   const saveView = async (view: Partial<ReleaseTableView>) => {
     const saved = await saveReleaseTableView(view);
     if (saved) setViews((prev) => [...prev, saved]);
   };
 
-  //update...
-  
-  //delete...
-
   return { views, saveView, loading };
 }
+
+export default useReleaseTableViews; // <= add default export

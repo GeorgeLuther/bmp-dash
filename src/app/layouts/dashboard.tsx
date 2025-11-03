@@ -23,7 +23,7 @@ export default function Layout() {
 
   const matches = useMatches();
   const leaf = matches[matches.length - 2];
-  if (leaf) console.log(leaf);
+  //if (leaf) console.log(leaf);
 
   if (status === "loading") {
     return (

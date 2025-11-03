@@ -1,3 +1,4 @@
+//src/features/scheduling/releaseTable/components/table/ReleaseTable.columns.ts
 import { MRT_ColumnDef } from "material-react-table";
 import { Release } from "../../types/Release.types";
 

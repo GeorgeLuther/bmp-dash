@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+// src/features/scheduling/releaseTable/components/ReleaseSaveViewDialog.tsx
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -7,13 +8,15 @@ import {
   TextField,
   Button,
 } from "@mui/material";
-import { usePersonnel } from "@/features/auth/user/UserContext";
-import { ReleaseTableView } from "../types/releaseTableView.types";
-
+import { useUser } from "@/features/auth/user/UserContext";
+import type {
+  ReleaseTableView,
+  ViewState,
+} from "../types/releaseTableView.types";
 type Props = {
   open: boolean;
   onClose: () => void;
-  tableState: any;
+  tableState: ViewState; // <- accept the slim controlled slice
   onSave: (view: Partial<ReleaseTableView>) => Promise<void>;
 };
 
@@ -23,8 +26,8 @@ export default function ReleaseSaveViewDialog({
   tableState,
   onSave,
 }: Props) {
-  const { personnel } = usePersonnel();
-  const userId: string = personnel?.id ?? "";
+  const { user, status } = useUser();
+  const userId = user?.personnel_id ?? "";
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -34,27 +37,27 @@ export default function ReleaseSaveViewDialog({
     if (open) {
       setName("");
       setDescription("");
+      setIsSaving(false);
     }
   }, [open]);
 
-  const handleSave = async () => {
-    if (!name.trim() || !userId || isSaving) return;
+  const canSave = !!name.trim() && !!userId && status === "ready" && !isSaving;
 
-    setIsSaving(true); // Disable button
+  const handleSave = async () => {
+    if (!canSave) return;
+    setIsSaving(true);
     try {
       await onSave({
         user_id: userId,
         name: name.trim(),
         description: description.trim(),
-        view_state: tableState,
+        view_state: tableState, // already normalized
       });
-      onClose(); // Close only on success
-    } catch (error) {
-      console.error("Failed to save view:", error);
-      // 💡 Idea: show a notification to the user here
-      // e.g., toast.error("Could not save view. Please try again.");
+      onClose();
+    } catch (err) {
+      console.error("Failed to save view:", err);
     } finally {
-      setIsSaving(false); // Re-enable button
+      setIsSaving(false);
     }
   };
 
@@ -82,12 +85,10 @@ export default function ReleaseSaveViewDialog({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          disabled={!name.trim()}
-        >
+        <Button onClick={onClose} disabled={isSaving}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} variant="contained" disabled={!canSave}>
           {isSaving ? "Saving..." : "Save"}
         </Button>
       </DialogActions>

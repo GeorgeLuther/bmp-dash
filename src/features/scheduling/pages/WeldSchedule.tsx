@@ -1,4 +1,4 @@
-import * as React from "react";
+//src/features/scheduling/pages/WeldSchedule.tsx
 import Typography from "@mui/material/Typography";
 
 export default function WeldPage() {
