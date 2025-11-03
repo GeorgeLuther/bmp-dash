@@ -1,7 +1,7 @@
-// src/features/personnel/table/peopleColumns.ts
+// src/features/personnel/table/columns.ts
 import { Stack, Chip } from "@mui/material";
-import { type MRT_ColumnDef } from "material-react-table";
-import { type Person } from "./person.types";
+import type { MRT_ColumnDef } from "material-react-table";
+import type { Person } from "./person.types";
 
 const dfmt = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
@@ -10,26 +10,18 @@ const dfmt = new Intl.DateTimeFormat(undefined, {
 });
 
 export const personColumns: MRT_ColumnDef<Person>[] = [
-  // Display name (preferred if present)
   {
-    id: "display_name",
+    accessorKey: "display_name",
     header: "Name",
-    accessorFn: (r) =>
-      r.preferred_name?.trim()?.length
-        ? r.preferred_name!.trim()
-        : `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim(),
     sortingFn: "alphanumeric",
     enableColumnFilter: true,
     size: 220,
   },
-
-  { accessorKey: "employment_status", header: "Status", size: 110 },
-
-  // Multiple departments → chips
+  { accessorKey: "status_label", header: "Status", size: 120 },
   {
     id: "departments",
     header: "Departments",
-    accessorFn: (r) => r.departments ?? [],
+    accessorFn: (r) => r.departments?.map((d) => d.department_label) ?? [],
     filterFn: "arrIncludesSome",
     Cell: ({ cell }) => {
       const deps = cell.getValue<string[]>();
@@ -42,44 +34,41 @@ export const personColumns: MRT_ColumnDef<Person>[] = [
         </Stack>
       );
     },
-    size: 240,
+    size: 260,
   },
+  { accessorKey: "primary_email_address", header: "Main Email", size: 240 },
 
-  { accessorKey: "agency", header: "Agency", size: 140 },
-  { accessorKey: "email_primary", header: "Main Email", size: 220 },
-
-  // Pretty dates, sortable via originals in row.original
   {
-    id: "started_at_fmt",
-    header: "Started",
+    id: "latest_hired_at_fmt",
+    header: "Latest Hire",
     accessorFn: (r) =>
-      r.started_at ? dfmt.format(new Date(r.started_at)) : "",
+      r.latest_hired_at ? dfmt.format(new Date(r.latest_hired_at)) : "",
     sortingFn: (a, b) =>
-      new Date(a.original.started_at ?? 0).getTime() -
-      new Date(b.original.started_at ?? 0).getTime(),
+      new Date(a.original.latest_hired_at ?? 0).getTime() -
+      new Date(b.original.latest_hired_at ?? 0).getTime(),
+    size: 130,
+  },
+  {
+    id: "end_at_fmt",
+    header: "Ended",
+    accessorFn: (r) => (r.end_at ? dfmt.format(new Date(r.end_at)) : ""),
+    sortingFn: (a, b) =>
+      new Date(a.original.end_at ?? 0).getTime() -
+      new Date(b.original.end_at ?? 0).getTime(),
     size: 120,
   },
   {
-    id: "hired_at_fmt",
-    header: "Hired",
-    accessorFn: (r) => (r.hired_at ? dfmt.format(new Date(r.hired_at)) : ""),
-    sortingFn: (a, b) =>
-      new Date(a.original.hired_at ?? 0).getTime() -
-      new Date(b.original.hired_at ?? 0).getTime(),
-    size: 120,
-  },
-  {
-    id: "created_at_fmt",
+    id: "created_fmt",
     header: "Created",
     accessorFn: (r) =>
-      r.created_at ? dfmt.format(new Date(r.created_at)) : "",
+      r.record_created_at ? dfmt.format(new Date(r.record_created_at)) : "",
     sortingFn: (a, b) =>
-      new Date(a.original.created_at ?? 0).getTime() -
-      new Date(b.original.created_at ?? 0).getTime(),
+      new Date(a.original.record_created_at ?? 0).getTime() -
+      new Date(b.original.record_created_at ?? 0).getTime(),
     size: 120,
   },
 
-  // Hidden/raw fields kept for export or advanced filters
+  // Hidden/raw fields available for filters/exports
   {
     accessorKey: "first_name",
     header: "First",
@@ -102,21 +91,28 @@ export const personColumns: MRT_ColumnDef<Person>[] = [
     size: 1,
   },
   {
-    accessorKey: "started_at",
-    header: "Started (raw)",
+    accessorKey: "first_hired_at",
+    header: "First Hired (raw)",
     enableHiding: true,
     enableColumnFilter: false,
     size: 1,
   },
   {
-    accessorKey: "hired_at",
-    header: "Hired (raw)",
+    accessorKey: "latest_hired_at",
+    header: "Latest Hired (raw)",
     enableHiding: true,
     enableColumnFilter: false,
     size: 1,
   },
   {
-    accessorKey: "created_at",
+    accessorKey: "end_at",
+    header: "Ended (raw)",
+    enableHiding: true,
+    enableColumnFilter: false,
+    size: 1,
+  },
+  {
+    accessorKey: "record_created_at",
     header: "Created (raw)",
     enableHiding: true,
     enableColumnFilter: false,
