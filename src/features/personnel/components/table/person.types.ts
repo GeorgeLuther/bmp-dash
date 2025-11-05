@@ -1,4 +1,4 @@
-// src/features/personnel/components/table/person.types.ts89988u 
+// src/features/personnel/components/table/person.types.ts
 export interface Person {
   id: string;
 

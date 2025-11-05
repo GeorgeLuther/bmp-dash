@@ -1,3 +1,4 @@
+// src/shared/safeRedirect.ts
 // Only allow same-origin, path-only redirects like "/personnel/active"
 export function safeRedirect(input: string | null | undefined, fallback = "/"): string {
   if (!input) return fallback;

@@ -1,3 +1,4 @@
+// src/features/scheduling/releaseTable/services/releaseViewService.tsx
 import { supabase } from "@/supabase/client";
 import { ReleaseTableView } from "../types/releaseTableView.types";
 
