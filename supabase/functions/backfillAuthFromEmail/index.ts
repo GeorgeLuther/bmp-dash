@@ -1,3 +1,7 @@
+// TL;DR: One-time migration script. Finds personnel *without* an auth account,
+// *generates* a new email for them (e.g., 'john.d@bullmetal.app'),
+// creates the Supabase auth user, and links it to the existing personnel record.
+
 // Edge Function: backfill_placeholder_auth_users
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

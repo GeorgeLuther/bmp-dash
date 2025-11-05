@@ -30,8 +30,11 @@ supabase/.env*          # secrets if you store them here
 # Environment files
 # ─────────────────────────────
 .env
-.env.*.local
+.env.*
 .env.local
+!*.example
+supabase/functions/**/invoke.mjs.local
+
 
 # ─────────────────────────────
 # VS Code / IDEs
