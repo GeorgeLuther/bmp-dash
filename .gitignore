@@ -45,6 +45,7 @@ supabase/.env*          # secrets if you store them here
 *.njsproj
 *.sln
 *.sw?
+*.code_workspace
 
 # ─────────────────────────────
 # System files & misc
