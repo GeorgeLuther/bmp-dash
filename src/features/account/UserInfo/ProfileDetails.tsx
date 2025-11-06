@@ -10,7 +10,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import ReadOrEditField from "@/features/account/UserInfo/ReadOrEditField";
-import { useUser } from "@/features/auth/user/UserContext";
+import useUser from "@/features/auth/user/useUser";
 import { supabase } from "@/supabase/client";
 
 type Props = { editable: boolean };

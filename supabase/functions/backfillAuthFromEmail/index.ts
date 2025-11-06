@@ -1,3 +1,8 @@
+// TL;DR: One-time migration script. Finds personnel_emails flagged with 'create_account = true',
+// creates a new Supabase auth user *using that existing email*, but
+// immediately bans them (sets ban_duration). This links the personnel record
+// to an auth record (satisfying personnel_id = auth_id key requirement) without enabling login.
+
 // Edge Function: backfill_placeholder_auth_users
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

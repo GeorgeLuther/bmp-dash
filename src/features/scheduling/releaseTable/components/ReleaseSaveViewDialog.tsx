@@ -8,7 +8,7 @@ import {
   TextField,
   Button,
 } from "@mui/material";
-import { useUser } from "@/features/auth/user/UserContext";
+import useUser from "@/features/auth/user/useUser";
 import type {
   ReleaseTableView,
   ViewState,

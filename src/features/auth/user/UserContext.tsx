@@ -17,7 +17,7 @@ import type {
 import { fetchCurrentUser } from "./api";
 import { useSession } from "@/features/auth/session/useSession";
 
-const Ctx = createContext<UserContextValue | undefined>(undefined);
+export const Ctx = createContext<UserContextValue | undefined>(undefined);
 
 // Adjust this to your real rules
 function computeCapabilities(roles: UserRole[]): Capabilities {
@@ -88,10 +88,4 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
-
-export function useUser() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useUser must be used within a UserProvider");
-  return v;
 }
