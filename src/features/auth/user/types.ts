@@ -1,64 +1,30 @@
 // src/features/auth/user/types.ts
-export type UserStatus = 'loading' | 'forbidden' | 'ready';
+import type { Tables } from "@/lib/db.types";
 
-export interface UserEmail {
-  id: string;
-  address: string;
-  email_type: string;
-  is_primary: boolean | null;
-  is_verified: boolean;
-  is_disabled: boolean;
-  send_notifications: boolean;
-}
 
-export interface UserEmployment {
-  status_id?: string | null;
-  status_label?: string | null;
-  is_employed?: boolean | null;
-  is_active?: boolean | null;
-  first_hired_at?: string | null;
-  latest_hired_at?: string | null;
-  end_at?: string | null;
-}
 
-export interface UserRole {
-  role_id: string;
-  role_label: string;
-  involvement_id: string | null;
-  involvement_label: string | null;
-  proficiency_id: string | null;
-  proficiency_label: string | null;
-  assigned_since?: string | null;
-}
+/** Row type of v_current_user_context as exposed by Supabase. */
+export type CurrentUser = Tables<"v_current_user_context">;
 
-export interface UserDepartment {
-  department_id: string;
-  department_label: string;
-}
 
-export interface CurrentUser {
-  personnel_id: string;
-  display_name: string;
-  first_name: string | null;
-  last_name: string | null;
-  preferred_name: string | null;
-  employment: UserEmployment;
-  emails: UserEmail[];
-  roles: UserRole[];
-  departments: UserDepartment[];
-}
 
-export interface Capabilities {
-  isTopManagement: boolean;
-  canAdminPeople: boolean;
-  canEditDocs: boolean;
-}
+/**
+ * Lifecycle of the *context*, not the person’s employment status.
+ */
+export type UserCtxStatus = "loading" | "forbidden" | "ready";
+
+
 
 export interface UserContextValue {
-  status: UserStatus;
+  /** Whether the context is still loading, ready, or forbidden by RLS. */
+  ctxStatus: UserCtxStatus;
+
+  /** The current user row from v_current_user_context, or null if forbidden/missing. */
   user: CurrentUser | null;
-  roles: UserRole[];
-  capabilities: Capabilities;
+
+  /** Error message when fetch fails (network, unexpected error). */
   error: string | null;
+
+  /** Force a refetch of the current user context. */
   refresh: () => Promise<void>;
 }

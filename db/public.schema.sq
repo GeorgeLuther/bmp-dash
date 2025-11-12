@@ -131,14 +131,53 @@ $$;
 ALTER FUNCTION "public"."get_personnel_without_email"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."is_top_management"() RETURNS boolean
+CREATE OR REPLACE FUNCTION "public"."has_any_role"("p_labels" "text"[]) RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
-with tm as (
+with target as (
   select r.id as role_id
   from public.roles r
-  where r.label = 'Top Management'
+  where r.label = any (p_labels)
+),
+latest as (
+  select distinct on (pre.personnel_id, pre.role_id)
+         pre.personnel_id, pre.role_id, pre.involvement_id, pre.effective_at
+  from public.personnel_roles_events pre
+  where pre.personnel_id = auth.uid()
+    and pre.event_type_id in ('assigned','adjusted')
+    and pre.effective_at <= now()
+  order by pre.personnel_id, pre.role_id, pre.effective_at desc
+)
+select exists (
+  select 1
+  from latest l
+  join target t on t.role_id = l.role_id
+  where l.involvement_id is distinct from 'blocked'
+    and not exists (
+      select 1
+      from public.personnel_roles_events u
+      where u.personnel_id = l.personnel_id
+        and u.role_id = l.role_id
+        and u.event_type_id = 'unassigned'
+        and u.effective_at > l.effective_at
+        and u.effective_at <= now()
+    )
+);
+$$;
+
+
+ALTER FUNCTION "public"."has_any_role"("p_labels" "text"[]) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."has_role"("p_label" "text") RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+with target as (
+  select r.id as role_id
+  from public.roles r
+  where r.label = p_label
   limit 1
 ),
 latest as (
@@ -153,7 +192,7 @@ latest as (
 select exists (
   select 1
   from latest l
-  join tm on tm.role_id = l.role_id
+  join target t on t.role_id = l.role_id
   where l.involvement_id is distinct from 'blocked'
     and not exists (
       select 1
@@ -166,6 +205,24 @@ select exists (
     )
 );
 $$;
+
+
+ALTER FUNCTION "public"."has_role"("p_label" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_system_admin"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$ select public.has_role('System Administrator'); $$;
+
+
+ALTER FUNCTION "public"."is_system_admin"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_top_management"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$ select public.has_role('Top Management'); $$;
 
 
 ALTER FUNCTION "public"."is_top_management"() OWNER TO "postgres";
@@ -1076,6 +1133,23 @@ COMMENT ON TABLE "public"."training_events" IS 'record of training events';
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."user_table_views" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "table_id" "text" NOT NULL,
+    "name" "text" NOT NULL,
+    "created_by" "uuid" NOT NULL,
+    "is_global" boolean DEFAULT false NOT NULL,
+    "is_locked" boolean DEFAULT false NOT NULL,
+    "description" "text",
+    "view_state" "jsonb" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."user_table_views" OWNER TO "postgres";
+
+
 CREATE OR REPLACE VIEW "public"."v_person_roles_current_min" WITH ("security_invoker"='on') AS
  WITH "latest_set" AS (
          SELECT DISTINCT ON ("pre"."personnel_id", "pre"."role_id") "pre"."personnel_id",
@@ -1242,18 +1316,23 @@ CREATE OR REPLACE VIEW "public"."v_current_user_active_roles" WITH ("security_in
 ALTER TABLE "public"."v_current_user_active_roles" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."v_current_user_departments" WITH ("security_invoker"='on') AS
- SELECT DISTINCT "d"."id" AS "department_id",
-    "d"."label" AS "department_label"
-   FROM (("public"."v_current_user_active_roles" "cur"
-     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "cur"."role_id")))
-     JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
-
-
-ALTER TABLE "public"."v_current_user_departments" OWNER TO "postgres";
-
-
 CREATE OR REPLACE VIEW "public"."v_current_user_context" WITH ("security_invoker"='on') AS
+ WITH "user_roles" AS (
+         SELECT "r"."role_id",
+            "r"."role_label",
+            "r"."involvement_id",
+            "r"."involvement_label",
+            "r"."proficiency_id",
+            "r"."proficiency_label",
+            "r"."assigned_since"
+           FROM "public"."v_current_user_active_roles" "r"
+        ), "user_departments" AS (
+         SELECT DISTINCT "d"."id" AS "department_id",
+            "d"."label" AS "department_label"
+           FROM (("user_roles" "ur"
+             JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "ur"."role_id")))
+             JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")))
+        )
  SELECT "p"."id" AS "personnel_id",
     COALESCE("p"."preferred_name", "p"."first_name") AS "display_name",
     "p"."first_name",
@@ -1266,15 +1345,32 @@ CREATE OR REPLACE VIEW "public"."v_current_user_context" WITH ("security_invoker
            FROM "public"."v_person_employment_current_min" "emp"
           WHERE ("emp"."personnel_id" = "p"."id")
          LIMIT 1), '{}'::"json") AS "employment",
-    COALESCE(( SELECT "json_agg"("json_build_object"('role_id', "r"."role_id", 'role_label', "r"."role_label", 'involvement_id', "r"."involvement_id", 'involvement_label', "r"."involvement_label", 'proficiency_id', "r"."proficiency_id", 'proficiency_label', "r"."proficiency_label") ORDER BY "r"."role_label") AS "json_agg"
-           FROM "public"."v_current_user_active_roles" "r"), '[]'::"json") AS "roles",
-    COALESCE(( SELECT "json_agg"("json_build_object"('department_id', "d"."department_id", 'department_label', "d"."department_label") ORDER BY "d"."department_label") AS "json_agg"
-           FROM "public"."v_current_user_departments" "d"), '[]'::"json") AS "departments"
+    COALESCE(( SELECT "json_agg"("json_build_object"('role_id', "ur"."role_id", 'role_label', "ur"."role_label", 'involvement_id', "ur"."involvement_id", 'involvement_label', "ur"."involvement_label", 'proficiency_id', "ur"."proficiency_id", 'proficiency_label', "ur"."proficiency_label") ORDER BY "ur"."role_label") AS "json_agg"
+           FROM "user_roles" "ur"), '[]'::"json") AS "roles",
+    COALESCE(( SELECT "json_agg"("json_build_object"('department_id', "ud"."department_id", 'department_label', "ud"."department_label") ORDER BY "ud"."department_label") AS "json_agg"
+           FROM "user_departments" "ud"), '[]'::"json") AS "departments",
+    (EXISTS ( SELECT 1
+           FROM "user_roles"
+          WHERE ("user_roles"."role_label" = 'System Administrator'::"text"))) AS "is_system_admin",
+    (EXISTS ( SELECT 1
+           FROM "user_roles"
+          WHERE ("user_roles"."role_label" = 'Top Management'::"text"))) AS "is_top_management"
    FROM "public"."personnel" "p"
   WHERE ("p"."id" = "auth"."uid"());
 
 
 ALTER TABLE "public"."v_current_user_context" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."v_current_user_departments" WITH ("security_invoker"='on') AS
+ SELECT DISTINCT "d"."id" AS "department_id",
+    "d"."label" AS "department_label"
+   FROM (("public"."v_current_user_active_roles" "cur"
+     JOIN "public"."departments_roles" "dr" ON (("dr"."role_id" = "cur"."role_id")))
+     JOIN "public"."departments" "d" ON (("d"."id" = "dr"."department_id")));
+
+
+ALTER TABLE "public"."v_current_user_departments" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."departments"
@@ -1487,6 +1583,16 @@ ALTER TABLE ONLY "public"."departments_roles"
 
 
 
+ALTER TABLE ONLY "public"."user_table_views"
+    ADD CONSTRAINT "user_table_views_created_by_table_id_name_key" UNIQUE ("created_by", "table_id", "name");
+
+
+
+ALTER TABLE ONLY "public"."user_table_views"
+    ADD CONSTRAINT "user_table_views_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."personnel"
     ADD CONSTRAINT "users_pkey" PRIMARY KEY ("id");
 
@@ -1541,6 +1647,22 @@ CREATE UNIQUE INDEX "uq_doc_one_published" ON "public"."document_versions" USING
 
 
 CREATE UNIQUE INDEX "uq_doc_semver" ON "public"."document_versions" USING "btree" ("document_id", "version_major", "version_minor", "version_patch");
+
+
+
+CREATE INDEX "utv_creator_table" ON "public"."user_table_views" USING "btree" ("created_by", "table_id");
+
+
+
+CREATE UNIQUE INDEX "utv_global_unique" ON "public"."user_table_views" USING "btree" ("table_id", "name") WHERE ("is_global" = true);
+
+
+
+CREATE INDEX "utv_table" ON "public"."user_table_views" USING "btree" ("table_id");
+
+
+
+CREATE OR REPLACE TRIGGER "handle_updated_at" BEFORE UPDATE ON "public"."user_table_views" FOR EACH ROW EXECUTE FUNCTION "extensions"."moddatetime"('updated_at');
 
 
 
@@ -1754,6 +1876,11 @@ ALTER TABLE ONLY "public"."training_event_enrollees"
 
 
 
+ALTER TABLE ONLY "public"."user_table_views"
+    ADD CONSTRAINT "user_table_views_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
 CREATE POLICY "All authenticated users can see department-subdepartment relati" ON "public"."departments_subdepartments" FOR SELECT TO "authenticated" USING (true);
 
 
@@ -1946,6 +2073,25 @@ ALTER TABLE "public"."training_event_enrollees" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."training_events" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."user_table_views" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "utv_admin_manage_all" ON "public"."user_table_views" TO "authenticated" USING ("public"."is_system_admin"()) WITH CHECK ("public"."is_system_admin"());
+
+
+
+CREATE POLICY "utv_owner_manage_unlocked" ON "public"."user_table_views" TO "authenticated" USING ((("created_by" = "auth"."uid"()) AND ("is_locked" = false))) WITH CHECK ((("created_by" = "auth"."uid"()) AND ("is_locked" = false)));
+
+
+
+CREATE POLICY "utv_owner_select" ON "public"."user_table_views" FOR SELECT TO "authenticated" USING (("created_by" = "auth"."uid"()));
+
+
+
+CREATE POLICY "utv_read_global" ON "public"."user_table_views" FOR SELECT TO "authenticated" USING (("is_global" = true));
+
+
+
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
@@ -1954,6 +2100,24 @@ GRANT USAGE ON SCHEMA "public" TO "authenticated";
 
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."get_personnel_without_email"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."has_any_role"("p_labels" "text"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."has_any_role"("p_labels" "text"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_any_role"("p_labels" "text"[]) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."has_role"("p_label" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."has_role"("p_label" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."has_role"("p_label" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_system_admin"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_system_admin"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."is_system_admin"() TO "service_role";
 
 
 
@@ -2170,6 +2334,11 @@ GRANT ALL ON TABLE "public"."training_events" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."user_table_views" TO "authenticated";
+GRANT ALL ON TABLE "public"."user_table_views" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."v_person_roles_current_min" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_person_roles_current_min" TO "service_role";
 
@@ -2195,13 +2364,13 @@ GRANT ALL ON TABLE "public"."v_current_user_active_roles" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."v_current_user_departments" TO "authenticated";
-GRANT ALL ON TABLE "public"."v_current_user_departments" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."v_current_user_context" TO "authenticated";
 GRANT ALL ON TABLE "public"."v_current_user_context" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."v_current_user_departments" TO "authenticated";
+GRANT ALL ON TABLE "public"."v_current_user_departments" TO "service_role";
 
 
 
