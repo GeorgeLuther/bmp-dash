@@ -89,7 +89,7 @@ export default function TableSaveDialog({
           value={desc}
           onChange={(e) => setDesc(e.target.value)}
         />
-        {canAdmin && (
+        {canManageSystemPresets && (
           <>
             <FormControlLabel
               control={
