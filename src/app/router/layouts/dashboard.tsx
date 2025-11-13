@@ -1,4 +1,4 @@
-// src/app/layouts/dashboard.tsx
+// src/app/router/layouts/dashboard.tsx
 import LinearProgress from "@mui/material/LinearProgress";
 import { Outlet, Navigate, useLocation, useMatches } from "react-router";
 import { DashboardLayout } from "@toolpad/core/DashboardLayout";

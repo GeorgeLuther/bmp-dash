@@ -1,4 +1,4 @@
-// src/app/navigation.ts
+// src/app/router/navigation.tsx
 import type { Navigation } from "@toolpad/core/AppProvider";
 import {
   TableChart,

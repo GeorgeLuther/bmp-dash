@@ -6,7 +6,7 @@ import type { Authentication } from "@toolpad/core/AppProvider";
 import { supabase } from "@/supabase/client";
 import { useSession } from "@/features/auth/session/useSession";
 // ...
-import { NAVIGATION, BRANDING } from "@/app/navigation";
+import { NAVIGATION, BRANDING } from "@/app/router/navigation";
 // (remove the old inline NAVIGATION/BRANDING)
 
 const AUTHENTICATION: Authentication = {

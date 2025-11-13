@@ -1,4 +1,4 @@
-// src/app/layouts/boundaries/ComingSoon.tsx
+// src/app/router/boundaries/ComingSoon.tsx
 
 // TODO: integrate markdown injector for  documentation and/or something like a progress bar/checklist
 

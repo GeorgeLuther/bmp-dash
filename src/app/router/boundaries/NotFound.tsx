@@ -1,4 +1,4 @@
-// src/app/layouts/boundaries/NotFound.tsx
+// src/app/router/boundaries/NotFound.tsx
 
 import { Box, Button, Stack, Typography } from "@mui/material";
 import SearchOffIcon from "@mui/icons-material/SearchOff";

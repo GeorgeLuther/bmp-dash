@@ -1,4 +1,4 @@
-// src/app/layouts/boundaries/ErrorBoundary.tsx
+// src/app/router/boundaries/ErrorBoundary.tsx
 
 import { useState } from "react";
 import {

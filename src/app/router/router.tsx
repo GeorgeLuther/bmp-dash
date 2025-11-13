@@ -1,4 +1,4 @@
-// src/app/router.tsx
+// src/app/router/router.tsx
 import { createBrowserRouter } from "react-router";
 
 import App from "@/app/App";
@@ -12,7 +12,7 @@ import ErrorBoundary from "@/app/router/boundaries/ErrorBoundary";
 import NotFound from "@/app/router/boundaries/NotFound";
 import ComingSoon from "@/app/router/boundaries/ComingSoon";
 
-import SchedulingLandingPage from "@/features/scheduling/pages/SchedulingLandingPage";
+//import SchedulingLandingPage from "@/features/scheduling/pages/SchedulingLandingPage";
 import AllReleasesPage from "@/features/scheduling/pages/AllReleases";
 import WeldingSchedule from "@/features/scheduling/pages/WeldSchedule";
 import ProcessMapStudio from "@/features/quality/process-maps-old/pages/ProcessMapStudio";
