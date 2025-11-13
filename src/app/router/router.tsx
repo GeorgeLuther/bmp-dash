@@ -8,9 +8,9 @@ import SignInPage from "@/features/auth/signin";
 // Pages
 import AccountPage from "@/features/account";
 
-import ErrorBoundary from "@/app/layouts/boundaries/ErrorBoundary";
-import NotFound from "@/app/layouts/boundaries/NotFound";
-import ComingSoon from "@/app/layouts/boundaries/ComingSoon";
+import ErrorBoundary from "@/app/router/boundaries/ErrorBoundary";
+import NotFound from "@/app/router/boundaries/NotFound";
+import ComingSoon from "@/app/router/boundaries/ComingSoon";
 
 import SchedulingLandingPage from "@/features/scheduling/pages/SchedulingLandingPage";
 import AllReleasesPage from "@/features/scheduling/pages/AllReleases";
@@ -88,6 +88,11 @@ export const router = createBrowserRouter([
             path: "account",
             Component: AccountPage,
             handle: { title: "Account" },
+          },
+          {
+            path: "*",
+            Component: NotFound,
+            handle: { title: "Page Not Found" },
           },
         ],
       },
