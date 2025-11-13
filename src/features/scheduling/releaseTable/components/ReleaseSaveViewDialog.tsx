@@ -26,7 +26,7 @@ export default function ReleaseSaveViewDialog({
   tableState,
   onSave,
 }: Props) {
-  const { user, status } = useUser();
+  const { user, ctxStatus } = useUser();
   const userId = user?.personnel_id ?? "";
 
   const [name, setName] = useState("");
@@ -41,7 +41,8 @@ export default function ReleaseSaveViewDialog({
     }
   }, [open]);
 
-  const canSave = !!name.trim() && !!userId && status === "ready" && !isSaving;
+  const canSave =
+    !!name.trim() && !!userId && ctxStatus === "ready" && !isSaving;
 
   const handleSave = async () => {
     if (!canSave) return;

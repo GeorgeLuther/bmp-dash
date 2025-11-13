@@ -2,7 +2,7 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router";
-import { router } from "@/app/router";
+import { router } from "@/app/router/router";
 import { SessionProvider } from "@/features/auth/session/SessionContext";
 import { UserProvider } from "@/features/auth/user/UserContext";
 

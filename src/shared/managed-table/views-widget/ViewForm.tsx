@@ -1,4 +1,4 @@
-// src/shared/table/views/TableSaveDialog.tsx
+// src/shared/table/views/ViewForm.tsx
 
 import { useEffect, useState } from "react";
 import {
@@ -23,7 +23,7 @@ type Props = {
   onSave: (input: CreateTableViewInput) => Promise<void>;
 };
 
-export default function TableSaveDialog({
+export default function ViewForm({
   open,
   onClose,
   tableId,

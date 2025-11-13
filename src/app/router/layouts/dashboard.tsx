@@ -5,7 +5,7 @@ import { DashboardLayout } from "@toolpad/core/DashboardLayout";
 import { Account } from "@toolpad/core/Account";
 
 import { useSession } from "@/features/auth/session/useSession";
-import { safeRedirect } from "@/shared/safeRedirect";
+import { safeRedirect } from "@/shared/helpers/safeRedirect";
 
 function CustomAccount() {
   return (

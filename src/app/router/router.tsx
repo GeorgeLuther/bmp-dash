@@ -2,18 +2,22 @@
 import { createBrowserRouter } from "react-router";
 
 import App from "@/app/App";
-import Layout from "@/app/layouts/dashboard";
+import Layout from "@/app/router/layouts/dashboard";
 import SignInPage from "@/features/auth/signin";
 
 // Pages
 import AccountPage from "@/features/account";
-import WipPage from "@/shared/WorkInProgress"; // keep if you still need
+
+import ErrorBoundary from "@/app/layouts/boundaries/ErrorBoundary";
+import NotFound from "@/app/layouts/boundaries/NotFound";
+import ComingSoon from "@/app/layouts/boundaries/ComingSoon";
+
 import SchedulingLandingPage from "@/features/scheduling/pages/SchedulingLandingPage";
 import AllReleasesPage from "@/features/scheduling/pages/AllReleases";
 import WeldingSchedule from "@/features/scheduling/pages/WeldSchedule";
 import ProcessMapStudio from "@/features/quality/process-maps-old/pages/ProcessMapStudio";
 import ProcessMapsWrapper from "@/features/quality/process-maps";
-import StandardPageLayout from "@/app/layouts/StandardPageLayout";
+import StandardPageLayout from "@/app/router/layouts/ContainedPage";
 import PersonnelPage from "@/features/personnel";
 
 // IMPORTANT: child paths MUST match NAVIGATION segment values.
@@ -24,6 +28,7 @@ export const router = createBrowserRouter([
       {
         path: "/",
         Component: Layout,
+        errorElement: <ErrorBoundary />,
         children: [
           {
             path: "scheduling",

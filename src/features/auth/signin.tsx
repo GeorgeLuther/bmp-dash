@@ -6,7 +6,7 @@ import { SignInPage } from "@toolpad/core/SignInPage";
 import { Navigate } from "react-router";
 import { useSession } from "@/features/auth/session/useSession";
 import { supabase } from "@/supabase/client";
-import { safeRedirect } from "@/shared/safeRedirect";
+import { safeRedirect } from "@/shared/helpers/safeRedirect";
 
 export default function SignIn() {
   const { status, session } = useSession();
