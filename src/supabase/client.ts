@@ -1,6 +1,6 @@
 // src/supabase/client.ts
 import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/db.types";
+import type { Database } from "@/supabase/db.types";
 
 // Read env
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;

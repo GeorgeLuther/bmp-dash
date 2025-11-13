@@ -1,6 +1,6 @@
 // src/services/releasesService.ts
 import { supabase } from "@/supabase/client"; // ← adjust path as needed
-import { Tables } from "@/lib/db.types"; // ← adjust path as needed
+import { Tables } from "@/supabase/db.types"; // ← adjust path as needed
 
 export type Release = Tables<"releases">;
 

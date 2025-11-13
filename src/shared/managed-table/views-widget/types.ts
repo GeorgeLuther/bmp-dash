@@ -17,7 +17,7 @@ import type {
   RowPinningState,
 } from "@tanstack/react-table";
 
-import type { Tables } from "@/lib/db.types";
+import type { Tables } from "@/supabase/db.types";
 
 /** Serializable slice of MRT state we persist in user_table_views.view_state */
 export type TableViewState = {

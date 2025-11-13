@@ -1,0 +1,2 @@
+npx supabase login
+npx supabase@latest db dump --schema public -f supabase/schema/public.sql

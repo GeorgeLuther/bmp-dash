@@ -1,5 +1,5 @@
 // src/features/auth/user/types.ts
-import type { Tables } from "@/lib/db.types";
+import type { Tables } from "@/supabase/db.types";
 
 
 

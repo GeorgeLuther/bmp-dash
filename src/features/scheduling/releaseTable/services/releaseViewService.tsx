@@ -1,6 +1,6 @@
 // src/features/scheduling/releaseTable/services/releaseViewService.tsx
 import { supabase } from "@/supabase/client";
-import type { TablesInsert } from "@/lib/db.types";
+import type { TablesInsert } from "@/supabase/db.types";
 
 type ReleaseTableView = TablesInsert<"release_table_views">;
 
