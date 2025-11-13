@@ -1,12 +1,19 @@
 // src/features/scheduling/releaseTable/services/releaseViewService.tsx
 import { supabase } from "@/supabase/client";
-import { ReleaseTableView } from "../types/releaseTableView.types";
+import type { TablesInsert } from "@/lib/db.types";
+
+type ReleaseTableView = TablesInsert<"release_table_views">;
+
+export type ReleaseTableViewInsert = Pick<
+  ReleaseTableView,
+  "user_id" | "name" | "description" | "view_state"
+>;
 
 // Save a new table view
-export async function saveReleaseTableView(view: Partial<ReleaseTableView>) {
+export async function saveReleaseTableView(payload: ReleaseTableViewInsert) {
   const { data, error } = await supabase
     .from("release_table_views")
-    .insert(view)
+    .insert(payload) // now matches the expected type
     .select()
     .single();
 
