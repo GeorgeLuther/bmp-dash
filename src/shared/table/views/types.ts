@@ -9,13 +9,15 @@ import type {
   MRT_ColumnSizingInfoState,
   MRT_DensityState,
   MRT_PaginationState,
-} from 'material-react-table';
+} from "material-react-table";
 
 import type {
-  VisibilityState,     // from TanStack
+  VisibilityState, // from TanStack
   ColumnPinningState,
   RowPinningState,
-} from '@tanstack/react-table';
+} from "@tanstack/react-table";
+
+import type { Tables } from "@/lib/db.types";
 
 /** Serializable slice of MRT state we persist in user_table_views.view_state */
 export type TableViewState = {
@@ -43,31 +45,27 @@ export type TableViewState = {
   showGlobalFilter?: boolean;
 
   // Pagination (only page size matters)
-  pagination?: Pick<MRT_PaginationState, 'pageSize'>;
+  pagination?: Pick<MRT_PaginationState, "pageSize">;
 };
 
-/** Row shape in public.user_table_views */
-export type TableView = {
-  id: string;
-  table_id: string;
-  name: string;
-  description: string | null;
-  created_by: string; // auth.users.id
-  is_global: boolean;
-  is_locked: boolean;
+// Raw DB row
+type UserTableViewRow = Tables<"user_table_views">;
+
+/** Row shape in public.user_table_views, but with a typed view_state */
+export type TableView = Omit<UserTableViewRow, "view_state"> & {
   view_state: TableViewState;
-  created_at: string;
-  updated_at: string;
 };
 
 /** Client payloads for CRUD */
 export type CreateTableViewInput = {
   table_id: string;
+  created_by: string;
   name: string;
   description?: string | null;
   view_state: TableViewState;
   is_global?: boolean;
   is_locked?: boolean;
+    /** session auth.users.id of the creator (session.userId) */
 };
 
 export type UpdateTableViewInput = {

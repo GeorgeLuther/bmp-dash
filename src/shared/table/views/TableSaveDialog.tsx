@@ -17,8 +17,9 @@ type Props = {
   open: boolean;
   onClose: () => void;
   tableId: string;
+  createdBy: string;
   viewState: TableViewState; // already captured slice
-  canAdmin?: boolean;
+  canManageSystemPresets?: boolean;
   onSave: (input: CreateTableViewInput) => Promise<void>;
 };
 
@@ -26,8 +27,9 @@ export default function TableSaveDialog({
   open,
   onClose,
   tableId,
+  createdBy,
   viewState,
-  canAdmin = false,
+  canManageSystemPresets = false,
   onSave,
 }: Props) {
   const [name, setName] = useState("");
@@ -52,10 +54,12 @@ export default function TableSaveDialog({
     try {
       await onSave({
         table_id: tableId,
+        created_by: createdBy,
         name: name.trim(),
         description: desc.trim() || null,
         view_state: viewState,
         is_global: isGlobal, // RLS will gate this to admins anyway
+        is_locked: isLocked,
       });
       onClose();
     } finally {

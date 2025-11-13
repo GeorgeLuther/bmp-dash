@@ -21,5 +21,5 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
   if (noRows) return null;
   if (error) throw error;
 
-  return data as unknown as CurrentUser;
+  return data;
 }
