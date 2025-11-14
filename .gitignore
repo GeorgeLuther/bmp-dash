@@ -20,21 +20,21 @@ dist/
 .stylelintcache
 
 # ─────────────────────────────
-# Supabase
+# Supabase (Files that MUST NOT be committed)
 # ─────────────────────────────
-.supabase/              # CLI build artifacts
-supabase/.temp/         # function temp files
-supabase/.env*          # secrets if you store them here
-
+supabase/.temp/             # CLI build artifacts and function temp files
+supabase/.env* # Secrets if stored inside the Supabase folder
+#ignore full data dumps
+*full_data*.sql
+supabase/schema/private-dumps/
 # ─────────────────────────────
-# Environment files
+# Environment files (Secrets & Config)
 # ─────────────────────────────
 .env
 .env.*
 .env.local
 !*.example
 supabase/functions/**/invoke.mjs.local
-
 
 # ─────────────────────────────
 # VS Code / IDEs
@@ -44,14 +44,4 @@ supabase/functions/**/invoke.mjs.local
 .idea/
 .DS_Store
 *.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 *.code_workspace
-
-# ─────────────────────────────
-# System files & misc
-# ─────────────────────────────
-node_modules
-db/dumps

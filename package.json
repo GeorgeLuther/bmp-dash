@@ -4,7 +4,10 @@
   "scripts": {
     "dev": "vite",
     "preview": "vite preview",
-    "build": "vite build"
+    "build": "vite build",
+    "types:gen": "npx supabase@latest gen types typescript --project-id \"$SUPABASE_PROJECT_REF\" --schema public > src/supabase/db.types.ts",
+    "sb:mini-sync": "./supabase/cli-scripts/sb-mini-sync.sh",
+    "sb:lookups": "./supabase/cli-scripts/sb-lookups.sh"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
